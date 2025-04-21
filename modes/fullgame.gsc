@@ -25,6 +25,8 @@ fullgame_initialize()
 	replacefunc( maps\mp\zombies\_zm_perk_random::get_weighted_random_perk, ::fullgame_get_weighted_random_perk);
 	replacefunc( maps\mp\zm_tomb_quest_crypt::chamber_discs_randomize, ::fullgame_chamber_discs_randomize);
 
+	replacefunc( maps\mp\zm_tomb_ee_main_step_4::stage_logic, ::fullgame_stage_logic);
+
 	level.robot[0] = "random";
 	level.robot[1] = "odin";
 	level.robot[2] = "thor";
@@ -118,6 +120,8 @@ fullgame_initialize()
 	set_dvar_if_unset("fullgame_disc_2", 0);
 	set_dvar_if_unset("fullgame_disc_3", 0);
 	set_dvar_if_unset("fullgame_disc_4", 0);
+
+	set_dvar_if_unset("fullgame_mechz_delay", 0);
 }
 
 fullgame_run()
@@ -558,6 +562,36 @@ fullgame_scramble_text_line( num )
 	{
 		return "^8[random]";
 	}
+}
+
+fullgame_mechz_rain_text()
+{
+	delay = getDvarFloat("fullgame_mechz_delay");
+	delay = delay * 2;
+	delays = array("random", "0.5s", "1s");
+	return delays[int(delay)];
+}
+
+fullgame_mechz_rain_rng()
+{
+	delay = getDvar("fullgame_mechz_delay");
+
+	switch(delay)
+	{
+		case "0":
+			setdvar("fullgame_mechz_delay", "0.5");
+			break;
+
+		case "0.5":
+			setdvar("fullgame_mechz_delay", "1");
+			break;
+
+		case "1":
+			setdvar("fullgame_mechz_delay", "0");
+			break;
+	}
+
+	self refresh_menu();
 }
 
 //##############hud elements####################
@@ -1358,6 +1392,45 @@ fullgame_chamber_discs_randomize()
 		prev_disc_pos = discs[i].position;
 	}
 	maps\mp\zm_tomb_quest_crypt::chamber_discs_move_all_to_position(discs);
+}
+
+fullgame_stage_logic()
+{
+/#
+    iprintln( level._cur_stage_name + " of little girl lost started" );
+#/
+    flag_wait( "ee_quadrotor_disabled" );
+    level thread maps\mp\zm_tomb_ee_main_step_4::sndee4music();
+
+    if ( !flag( "ee_mech_zombie_fight_completed" ) )
+    {
+        while ( level.ee_mech_zombies_spawned < 8 )
+        {
+            if ( level.ee_mech_zombies_alive < 4 )
+            {
+                ai = spawn_zombie( level.mechz_spawners[0] );
+                ai thread maps\mp\zm_tomb_ee_main_step_4::ee_mechz_spawn( level.ee_mech_zombies_spawned % 4 );
+                level.ee_mech_zombies_alive++;
+                level.ee_mech_zombies_spawned++;
+            }
+
+			val = getdvarfloat("fullgame_mechz_delay");
+			if(!val)
+			{
+				wait( randomfloatrange( 0.5, 1 ) );
+			}
+			else
+			{
+				wait val;
+			}
+
+
+        }
+    }
+
+    flag_wait( "ee_mech_zombie_fight_completed" );
+    wait_network_frame();
+    maps\mp\zombies\_zm_sidequests::stage_completed( "little_girl_lost", level._cur_stage_name );
 }
 
 level_print( text )

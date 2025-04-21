@@ -339,7 +339,10 @@ build_menu_tree()
 						create_menu(E4, TOP, "Panzer");
 							create_option(E4, "Panzer 2: ^3" + dvarint_compare("fullgame_panzer_2", getDvarInt("fullgame_panzer_2") + " rounder", "random"), scripts\zm\origins_menu\fullgame::fullgame_cycle_panzer, 2);
 							create_option(E4, "Panzer 3: ^3" + dvarint_compare("fullgame_panzer_3", getDvarInt("fullgame_panzer_3") + " rounder", "random"), scripts\zm\origins_menu\fullgame::fullgame_cycle_panzer, 3);
+							create_option(E4, "Panzer rain delay: ^3" + fullgame_mechz_rain_text(), ::fullgame_mechz_rain_rng);
 							create_option(E4, "-panzer blood", ::n_test);
+
+
 						E5="box";
 						create_option(TOP, ">Mystery Box", ::enter_menu, E5, "Box");
 						create_menu(E5, TOP, "box");

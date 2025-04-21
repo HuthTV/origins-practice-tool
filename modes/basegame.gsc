@@ -43,7 +43,8 @@ reset_replacefuncs()
         maps\mp\zm_tomb_dig::bonus_points_powerup_override,
         maps\mp\zm_tomb_dig::dig_spots_respawn,
         maps\mp\zombies\_zm_perk_random::get_weighted_random_perk,
-        maps\mp\zm_tomb_quest_crypt::chamber_discs_randomize
+        maps\mp\zm_tomb_quest_crypt::chamber_discs_randomize,
+        maps\mp\zm_tomb_ee_main_step_4::stage_logic
     );
 
     replacefuncs = combinearrays(fullgame_replacefuncs, replacefuncs);
