@@ -131,7 +131,7 @@ fullgame_run()
 	level thread fullgame_panzer_rounds();
 
 	fizz_loc = getDvarInt("fullgame_fizz_location");
-	if(fizz_loc) level thread fullgame_fizz_start_location(fizz_loc - 1);
+	if(fizz_loc) level thread fullgame_fizz_start_location(fizz_loc);
 
 	box_loc = getDvarInt("fullgame_box_location");
 	if(box_loc) level thread fullgame_start_box_location(box_loc - 1);
@@ -264,6 +264,9 @@ fullgame_box_patch(tier)
 			level.zombie_weapons["raygun_mark2_zm"].is_in_box = 1;
 			break;
 	}
+
+	foreach(weapon in box_guns)
+		level.zombie_weapons[weapon].is_in_box = 1;
 }
 
 //##############MENU FUNCTIONS####################
@@ -664,6 +667,10 @@ fullgame_waittill_dug(s_dig_spot)
 						self thread first_dig(player, level.first_dig_list[value]);
 					else if(value < 10)
 						self thread weapon_first(player, level.first_dig_list[value]);
+				}
+				else if(getDvarInt("fullgame_250_digs"))
+				{
+					self thread first_dig(player, "bonus_points_player");
 				}
 				else if(n_prize_roll > n_good_chance)
 				{
