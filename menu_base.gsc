@@ -351,12 +351,17 @@ build_menu_tree()
 							create_option(E5, "MP40 no-stock: ^3" + dvarint_compare("fullgame_box_no_stock_mp40"), ::toggle_binary, "fullgame_box_no_stock_mp40");
 							create_option(E5, "-hit 1", ::n_test);
 							create_option(E5, "-hit 2", ::n_test);
-						E6="presets";
-						create_option(TOP, ">Game Presets", ::enter_menu, E6, "Presets");
-						create_menu(E6, TOP, "Presets");
-							create_option(E6, "-29 rng", ::n_test);
-							create_option(E6, "-perfect 29 rng", ::n_test);
-							create_option(E6, "-f4d rng", ::n_test);
+						E6="powerups";
+						create_option(TOP, ">Powerups", ::enter_menu, E6, "Powerups");
+						create_menu(E6, TOP, "powerups");
+							create_option(E6, "First Powerup: ^3" + fullgame_first_powerup_text(), ::increment_int, "fullgame_first_powerup", array(0,5));
+							create_option(E6, "Fist of Iron Nuke: " + dvarint_compare("fullgame_fist_of_iron_nuke"), ::toggle_binary, "fullgame_fist_of_iron_nuke");
+						E7="presets";
+						create_option(TOP, ">Game Presets", ::enter_menu, E7, "Presets");
+						create_menu(E7, TOP, "Presets");
+							create_option(E7, "-29 rng", ::n_test);
+							create_option(E7, "-perfect 29 rng", ::n_test);
+							create_option(E7, "-f4d rng", ::n_test);
 			}
 
 			TOP="HUD";

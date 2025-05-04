@@ -27,6 +27,12 @@ fullgame_initialize()
 
 	replacefunc( maps\mp\zm_tomb_ee_main_step_4::stage_logic, ::fullgame_stage_logic);
 
+	replacefunc( maps\mp\zombies\_zm_powerups::randomize_powerups, ::fullgame_randomize_powerups );
+	replacefunc( maps\mp\zombies\_zm_powerups::powerup_drop, ::fullgame_powerup_drop );
+
+	flag_init("fullgame_fist_of_iron_nuke_dropped");
+	flag_clear("fullgame_fist_of_iron_nuke_dropped");
+
 	level.robot[0] = "random";
 	level.robot[1] = "odin";
 	level.robot[2] = "thor";
@@ -122,6 +128,9 @@ fullgame_initialize()
 	set_dvar_if_unset("fullgame_disc_4", 0);
 
 	set_dvar_if_unset("fullgame_mechz_delay", 0);
+
+	set_dvar_if_unset("fullgame_first_powerup", 0);
+	set_dvar_if_unset("fullgame_fist_of_iron_nuke", 0);
 }
 
 fullgame_run()
@@ -595,6 +604,12 @@ fullgame_mechz_rain_rng()
 	}
 
 	self refresh_menu();
+}
+
+fullgame_first_powerup_text()
+{
+	powerups = array("random", "nuke", "double points", "max ammo", "zombie blood", "insta kill");
+	return powerups[getDvarInt("fullgame_first_powerup")];
 }
 
 //##############hud elements####################
@@ -1438,6 +1453,123 @@ fullgame_stage_logic()
     flag_wait( "ee_mech_zombie_fight_completed" );
     wait_network_frame();
     maps\mp\zombies\_zm_sidequests::stage_completed( "little_girl_lost", level._cur_stage_name );
+}
+
+fullgame_randomize_powerups()
+{
+	level.zombie_powerup_array = array_randomize( level.zombie_powerup_array );
+
+	if (getDvarInt("fullgame_first_powerup") && level.round_number <= 1)
+	{
+		powerups = array("random", "nuke", "double_points", "full_ammo", "zombie_blood", "insta_kill");
+		powerup = powerups[getDvarInt("fullgame_first_powerup")];
+		powerup_index = get_powerup_index(powerup);
+		level.zombie_powerup_array[powerup_index] = level.zombie_powerup_array[0];
+		level.zombie_powerup_array[0] = powerup;
+	}
+
+	if(getDvarInt("fullgame_fist_of_iron_nuke") && !flag("fullgame_fist_of_iron_nuke_dropped") && level.round_number >= 13)
+	{
+		nuke_index = get_powerup_index("nuke");
+		level.zombie_powerup_array[nuke_index] = level.zombie_powerup_array[level.zombie_powerup_array.size - 1];
+		level.zombie_powerup_array[level.zombie_powerup_array.size - 1] = "nuke";
+	}
+}
+
+get_powerup_index(powerup)
+{
+	for(i = 0; i < level.zombie_powerup_array.size; i++)
+	{
+		if(level.zombie_powerup_array[i] == powerup)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+fullgame_powerup_drop( drop_point )
+{
+    if ( level.powerup_drop_count >= level.zombie_vars["zombie_powerup_drop_max_per_round"] )
+    {
+/#
+        println( "^3POWERUP DROP EXCEEDED THE MAX PER ROUND!" );
+#/
+        return;
+    }
+
+    if ( !isdefined( level.zombie_include_powerups ) || level.zombie_include_powerups.size == 0 )
+        return;
+
+    rand_drop = randomint( 100 );
+
+	fist_of_iron_nuke_set = 0;
+	p1 = getPlayers()[0];
+	if(getDvarInt("fullgame_fist_of_iron_nuke") && !flag("fullgame_fist_of_iron_nuke_dropped") && isDefined(p1.n_ee_punch_souls) && p1.n_ee_punch_souls >= 20 && level.zombie_total <= 2)
+	{
+		rand_drop = 0;
+		nuke_index = get_powerup_index("nuke");
+		if(nuke_index >= level.zombie_powerup_index)
+		{
+			level.zombie_powerup_array[nuke_index] = level.zombie_powerup_array[level.zombie_powerup_index];
+			level.zombie_powerup_array[level.zombie_powerup_index] = "nuke";
+			fist_of_iron_nuke_set = 1;
+		}
+	}
+
+    if ( rand_drop > 2 )
+    {
+        if ( !level.zombie_vars["zombie_drop_item"] )
+            return;
+
+        debug = "score";
+    }
+    else
+        debug = "random";
+
+    playable_area = getentarray( "player_volume", "script_noteworthy" );
+    level.powerup_drop_count++;
+    powerup = maps\mp\zombies\_zm_net::network_safe_spawn( "powerup", 1, "script_model", drop_point + vectorscale( ( 0, 0, 1 ), 40.0 ) );
+    valid_drop = 0;
+
+    for ( i = 0; i < playable_area.size; i++ )
+    {
+        if ( powerup istouching( playable_area[i] ) )
+            valid_drop = 1;
+    }
+
+    if ( valid_drop && level.rare_powerups_active )
+    {
+        pos = ( drop_point[0], drop_point[1], drop_point[2] + 42 );
+
+        if ( check_for_rare_drop_override( pos ) )
+        {
+            level.zombie_vars["zombie_drop_item"] = 0;
+            valid_drop = 0;
+        }
+    }
+
+    if ( !valid_drop )
+    {
+        level.powerup_drop_count--;
+        powerup delete();
+        return;
+    }
+
+	if(fist_of_iron_nuke_set)
+	{
+		flag_set("fullgame_fist_of_iron_nuke_dropped");
+	}
+
+    powerup powerup_setup();
+    print_powerup_drop( powerup.powerup_name, debug );
+    powerup thread powerup_timeout();
+    powerup thread powerup_wobble();
+    powerup thread powerup_grab();
+    powerup thread powerup_move();
+    powerup thread powerup_emp();
+    level.zombie_vars["zombie_drop_item"] = 0;
+    level notify( "powerup_dropped", powerup );
 }
 
 level_print( text )
