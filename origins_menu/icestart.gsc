@@ -311,6 +311,9 @@ icestart_split()
 	level.timer["segment"].alpha = 1;
 	level.timer["segment"] settimerup(0);
 
+	flag_wait("ee_samantha_released");
+    level waittill("end_game");
+
 	level.ice_timer destroy();
     level.freedom_hud = new_tracked_server_font( "default", 1.4 );
 	level.freedom_hud.sort = 2000;
