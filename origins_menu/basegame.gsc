@@ -606,7 +606,7 @@ say_command_monitor()
 	while(true)
 	{
 		level waittill("say", message, player);
-		switch(message)
+		switch(tolower(message))
 		{
 			case "max":
 				player give_drop("full_ammo");
