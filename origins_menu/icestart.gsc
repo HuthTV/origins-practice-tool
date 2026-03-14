@@ -251,6 +251,7 @@ icestart_split()
 	level.timer["segment"] = createServerFontString( "default", 1.3 );
 	level.timer["segment"] setpoint( "CENTER", "TOP", 0, 0 );
 	level.timer["segment"].alpha = 0.9;
+	level.timer["segment"].sort = 2000;
 
 	while(level.n_staffs_crafted < 1) wait 0.05;
 	level.timer["segment"] settimerup(0);
@@ -279,7 +280,7 @@ icestart_split()
 	level.wind_hud.hidewheninmenu = 0;
     level.wind_hud set_safe_text("^3WIND ^7" + game_time_string());
 	split++;
-	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + ((split + 1) * y_increment) );
+	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_timer.split_name = "^1FIRE ^7";
 
 	while(level.n_staffs_crafted < 3) wait 0.05;
@@ -291,7 +292,7 @@ icestart_split()
 	level.fire_hud.hidewheninmenu = 0;
     level.fire_hud set_safe_text("^1FIRE ^7" + game_time_string());
 	split++;
-	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + ((split + 1) * y_increment) );
+	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_timer.split_name = "^6LIGHTNING ^7";
 
 	while(level.n_staffs_crafted < 4) wait 0.05;
@@ -303,7 +304,7 @@ icestart_split()
 	level.lightning_hud.hidewheninmenu = 0;
     level.lightning_hud set_safe_text("^6LIGHTNING ^7" + game_time_string());
 	split++;
-	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + ((split + 1) * y_increment) );
+	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_timer.split_name = "^3FREEDOM ^7";
 
 	level.timer["segment"].alpha = 0;
