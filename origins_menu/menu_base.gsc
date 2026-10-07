@@ -559,74 +559,6 @@ initialize_menu_variables()
 	self.Candy["bg_colour"] = (0,0,0);
 }
 
-overflow_fix()
-{
-	level endon("game_ended");
-	level endon("host_migration_begin");
-
-	level.test = createServerFontString("default", 1);
-	level.test setText("overflow");
-	level.test.alpha = 0;
-
-	max_string_count = 55;
-
-	while(true)
-	{
-		level waittill("textset");
-
-		if(level.string_count >= max_string_count)
-		{
-			waittillframeend;
-			level.test ClearAllTextAfterHudElem();
-			level.string_count = 0;
-
-			foreach(player in level.players)
-			{
-				if(player menu_open())
-				{
-					player refresh_title();
-					player enter_menu(player.curent_menu, player.current_title);
-					player.helptext set_safe_text("^7UP/DOWN ^3[{+actionslot 1}]/[{+actionslot 2}]\n^7ENTER/EXIT ^3[{+actionslot 3}]/[{+actionslot 4}]");
-					//player refresh_menu();
-				}
-			}
-
-			level.overflow ClearAllTextAfterHudElem();
-            level.string_count = 0;
-
-            foreach(elem in level.managed_text_huds)
-            {
-                if(isdefined(elem))
-				{
-					if(isDefined(elem.text_string)) 
-					{
-						elem set_text_no_notify(elem.text_string);         
-					}
-				}      
-            }
-		}
-
-		//Global elem
-		switch("xdd")
-		{
-			case "fullgame": fullgame_refresh(); break;
-			case "panzprac": panzprac_refresh(); break;
-			case "icestart": icestart_refresh(); break;
-			case "windstart": windstart_refresh(); break;
-		}
-		//basegame_refresh();
-	}
-}
-
-set_text_no_notify(text)
-{
-	level.string_count += 1;
-
-    // Notify overflow monitor on setText
-    self.text_string = text;
-	self setText(text);
-}
-
 open_menu()
 {
 	self.ignoreme = 1;
@@ -673,7 +605,7 @@ draw_menu()
 
 draw_text(menu)
 {
-	self.menu_tree["HUD"]["SubTitle"] set_safe_text(menu);
+	self.menu_tree["HUD"]["SubTitle"] setTextUnlimited(menu);
 
 	if(isDefined(self.recreateOptions))
 		for(i = 0; i < 7; i++)
@@ -693,9 +625,9 @@ update_scrollbar()
     	for(i = 0; i < 7; i++)
     	{
 	    	if(isDefined(self.menu.menuopt[self.curent_menu][i]))
-				self.menu_tree["OPT"][i] set_safe_text(self.menu.menuopt[self.curent_menu][i]);
+				self.menu_tree["OPT"][i] setTextUnlimited(self.menu.menuopt[self.curent_menu][i]);
 			else
-				self.menu_tree["OPT"][i] set_safe_text("");
+				self.menu_tree["OPT"][i] setTextUnlimited("");
 
 			if(self.menu.curs[self.curent_menu] == i)
 				self.menu_tree["OPT"][i].color = self.Candy["menu_colour"];
@@ -711,9 +643,9 @@ update_scrollbar()
 			for(i=self.menu.curs[self.curent_menu]-3;i<self.menu.curs[self.curent_menu]+4;i++)
 			{
 			    if(isDefined(self.menu.menuopt[self.curent_menu][i]))
-					self.menu_tree["OPT"][xePixTvx] set_safe_text(self.menu.menuopt[self.curent_menu][i]);
+					self.menu_tree["OPT"][xePixTvx] setTextUnlimited(self.menu.menuopt[self.curent_menu][i]);
 				else
-					self.menu_tree["OPT"][xePixTvx] set_safe_text("");
+					self.menu_tree["OPT"][xePixTvx] setTextUnlimited("");
 
 				if(self.menu.curs[self.curent_menu]==i)
 					self.menu_tree["OPT"][xePixTvx].color = self.Candy["menu_colour"];
@@ -727,7 +659,7 @@ update_scrollbar()
 		{
 			for(i = 0; i < 7; i++)
 			{
-				self.menu_tree["OPT"][i] set_safe_text(self.menu.menuopt[self.curent_menu][self.menu.menuopt[self.curent_menu].size+(i-7)]);
+				self.menu_tree["OPT"][i] setTextUnlimited(self.menu.menuopt[self.curent_menu][self.menu.menuopt[self.curent_menu].size+(i-7)]);
 
          		if(self.menu.curs[self.curent_menu]==self.menu.menuopt[self.curent_menu].size+(i-7))
 					self.menu_tree["OPT"][i].color = self.Candy["menu_colour"];
@@ -740,9 +672,9 @@ update_scrollbar()
 
 open_nav_text(x, y)
 {
-	self.helptext = self new_tracked_client_font("hudbig", 1.5);
+	self.helptext = self createFontString("hudbig", 1.5);
 	self.helptext setpoint("right", "center", 155, 75);
-	self.helptext set_safe_text("^7UP/DOWN ^3[{+actionslot 1}]/[{+actionslot 2}]\n^7ENTER/EXIT ^3[{+actionslot 3}]/[{+actionslot 4}]");
+	self.helptext setTextUnlimited("^7UP/DOWN ^3[{+actionslot 1}]/[{+actionslot 2}]\n^7ENTER/EXIT ^3[{+actionslot 3}]/[{+actionslot 4}]");
 	self.helptext.alpha = 1;
 }
 
@@ -825,27 +757,6 @@ menu_open()
 	return false;
 }
 
-set_safe_text(text)
-{
-	level.string_count += 1;
-	level notify("textset");
-    self.text_string = "" + text;
-	self setText(self.text_string);
-}
-
-notify_label_text( num )
-{
-	val = 1;
-	if(isDefined(num))
-		val = num;
-
-	for(i = 0; i < val; i++)
-	{
-		level.string_count += val;
-		level notify("textset");
-	}
-}
-
 hud_fade(alpha, time)
 {
 	self fadeOverTime(time);
@@ -857,7 +768,7 @@ update_menu_text(text,menu,pointer)
 {
 	if(!isDefined(menu)) menu = self.curent_menu;
 	if(!isDefined(pointer)) pointer = self.menu.curs[menu];
-	self.menu_tree["options"][pointer] set_safe_text(text);
+	self.menu_tree["options"][pointer] setTextUnlimited(text);
 	self.menu.menuopt[menu][pointer] = text;
 	self thread update_scrollbar();
 }
@@ -913,7 +824,7 @@ god_mode_bool()
 
 draw_text_title(text, font, fontScale, align, relative, x, y, color, alpha, sort)
 {
-	hud = self new_tracked_client_font(font, fontScale);
+	hud = self createFontString(font, fontScale);
 	hud setPoint(align, relative, x, y);
 	hud.color = color;
 	hud.alpha = alpha;
@@ -921,7 +832,7 @@ draw_text_title(text, font, fontScale, align, relative, x, y, color, alpha, sort
 	hud.sort = sort;
 	hud.foreground = true;
 	if(self issplitscreen()) hud.x += 100;
-	hud set_safe_text(text);
+	hud setTextUnlimited(text);
 	return hud;
 }
 

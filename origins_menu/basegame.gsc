@@ -139,24 +139,6 @@ basegame_overrides()
     replacefunc( maps\mp\zombies\_zm_powerups::watch_for_drop, ::basegame_watch_for_drop );
 }
 
-basegame_refresh()
-{
-    if(isDefined(level.zombie_counter_hud))
-    {
-        level.zombie_counter_hud.label = &"remaning: ^1";
-        notify_label_text();
-    }
-    if(isDefined(level.zombie_spawned_hud))
-    {
-        level.zombie_spawned_hud.label = &"spawned: ^1";
-        notify_label_text();
-    }
-    if(isDefined(level.point_based_hud))
-    {
-        level.point_based_hud set_safe_text( level.point_based_hud.text);
-    }
-}
-
 // toggles
 toggle_remaining()
 {
@@ -222,7 +204,7 @@ give_drop( drop )
 basegame_points_hud()
 {
     self endon( "disconnect" );
-    level.point_based_hud = new_tracked_server_font( "hudsmall", 1.4 );
+    level.point_based_hud = createServerFontString( "hudsmall", 1.4 );
     level.point_based_hud.alignx = "left";
     level.point_based_hud.aligny = "middle";
     level.point_based_hud.horzalign = "right";
@@ -250,7 +232,7 @@ basegame_points_hud()
             point_cur = players[0].score;
 
             level.point_based_hud.text = point_cur + "/" + point_req;
-            level.point_based_hud set_safe_text( level.point_based_hud.text );
+            level.point_based_hud setTextUnlimited( level.point_based_hud.text );
         }
         else if(mode == 2)
         {
@@ -258,7 +240,7 @@ basegame_points_hud()
             point_cur = new_total_score;
 
             level.point_based_hud.text = point_cur + "/" + point_req;
-            level.point_based_hud set_safe_text( level.point_based_hud.text );
+            level.point_based_hud setTextUnlimited( level.point_based_hud.text );
         }
 
         if ( level.zombie_vars["zombie_drop_item"] )
@@ -272,10 +254,9 @@ basegame_points_hud()
 
 basegame_zombie_remaining_hud()
 {
-	level.zombie_counter_hud = new_tracked_server_font("hudsmall", 1.3);
+	level.zombie_counter_hud = createServerFontString("hudsmall", 1.3);
 	level.zombie_counter_hud setpoint("CENTER", "CENTER", "CENTER", 185);
 	level.zombie_counter_hud.label = &"remaning: ^1";
-    notify_label_text();
 
 	while(isDefined(level.zombie_counter_hud))
 	{
@@ -286,10 +267,9 @@ basegame_zombie_remaining_hud()
 
 basegame_zombie_spawned_hud()
 {
-	level.zombie_spawned_hud = new_tracked_server_font("hudsmall", 1.3);
+	level.zombie_spawned_hud = createServerFontString("hudsmall", 1.3);
 	level.zombie_spawned_hud setpoint("CENTER", "CENTER", "CENTER", 200);
 	level.zombie_spawned_hud.label = &"spawned: ^1";
-    notify_label_text();
 
 	while(isDefined(level.zombie_spawned_hud))
 	{

@@ -21,7 +21,6 @@ main()
 	set_dvar_if_unset("o_menu_gamemode", "fullgame");
 	level.gamemode = getDvar("o_menu_gamemode");
 	level.oprac_version = "DEV";
-	level.managed_text_huds = [];
 
 	basegame_initialize();
 
@@ -57,10 +56,7 @@ init()
 
     level thread on_player_connect_menu();
 
-    level.strings = [];
-    level.string_count = 1;
     level.menu_title = "Huth's O-Practice " + level.oprac_version;
-    level.host_spawned = false;
 
 	//Shader of menu bg
     precacheshader( "lui_soldier" );
@@ -97,13 +93,6 @@ on_player_spawned_menu()
 		{
 			self.has_menu = true;
 			self thread initialize_menu();
-		}
-
-		if(!level.host_spawned && self isHost())
-		{
-			thread overflow_fix();
-			//self freezeControls(false);
-			level.host_spawned = true;
 		}
 
 		flag_wait("initial_blackscreen_passed");

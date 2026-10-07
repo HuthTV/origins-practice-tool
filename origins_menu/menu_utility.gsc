@@ -358,36 +358,3 @@ panzer_3_force_round()
 		level.next_mechz_round = temp_round + val;
 	}
 }
-
-
-new_tracked_client_font(font, fontScale)
-{
-    hud = self createFontString(font, fontScale);
-    level.managed_text_huds[level.managed_text_huds.size] = hud;
-
-    return hud;
-}
-
-new_tracked_client_hud()
-{
-    hud = newClientHudElem(self);
-    level.managed_text_huds[level.managed_text_huds.size] = hud;
-
-    return hud;
-}
-
-new_tracked_hud()
-{
-    hud = newhudelem();
-    level.managed_text_huds[level.managed_text_huds.size] = hud;
-
-    return hud;
-}
-
-new_tracked_server_font(font, fontScale)
-{
-    hud = createServerFontString(font, fontScale);
-    level.managed_text_huds[level.managed_text_huds.size] = hud;
-
-    return hud;
-}

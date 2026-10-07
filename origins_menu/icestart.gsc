@@ -123,16 +123,6 @@ icestart_run()
 	*/
 }
 
-icestart_refresh()
-{
-    if(isDefined(level.cycle_display)) level.cycle_display set_safe_text(level.cycle_string);
-	if(isDefined(level.ice_hud)) level.ice_hud set_safe_text(level.ice_time);
-	if(isDefined(level.wind_hud)) level.wind_hud set_safe_text(level.wind_time);
-	if(isDefined(level.fire_hud)) level.fire_hud set_safe_text(level.fire_time);
-	if(isDefined(level.lightning_hud)) level.lightning_hud  set_safe_text(level.lightning_time);
-	if(isDefined(level.ice_timer))level.ice_timer set_safe_text(level.ice_timer.time);
-}
-
 icestart_toggle_cycle_display()
 {
 	setting = "cycle_tracker";
@@ -146,10 +136,10 @@ icestart_toggle_cycle_display()
 
 icestart_cycle_tracker()
 {
-    level.cycle_display = new_tracked_server_font("default", 1.3);
+    level.cycle_display = createServerFontString("default", 1.3);
 	level.cycle_display setpoint("LEFT", "LEFT", 5, -232);
 	level.cycle_display.alpha = 1;
-	level.cycle_display set_safe_text(level.cycle_string);
+	level.cycle_display setTextUnlimited(level.cycle_string);
 }
 
 icestart_kill_plane()
@@ -264,21 +254,21 @@ icestart_split()
     level.game_start_time += offset * 1000;
     level.game_start_time -= 889950;
 
-	level.ice_hud = new_tracked_server_font( "default", 1.4 );
+	level.ice_hud = createServerFontString( "default", 1.4 );
 	level.ice_hud.sort = 2000;
 	level.ice_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_hud.hidewheninmenu = 0;
-    level.ice_hud set_safe_text("^4ICE ^7" + game_time_string());
+    level.ice_hud setTextUnlimited("^4ICE ^7" + game_time_string());
 	split++;
 
 	while(level.n_staffs_crafted < 2) wait 0.05;
 	level.timer["segment"] settimerup(0);
 
-	level.wind_hud = new_tracked_server_font( "default", 1.4 );
+	level.wind_hud = createServerFontString( "default", 1.4 );
 	level.wind_hud.sort = 2000;
 	level.wind_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.wind_hud.hidewheninmenu = 0;
-    level.wind_hud set_safe_text("^3WIND ^7" + game_time_string());
+    level.wind_hud setTextUnlimited("^3WIND ^7" + game_time_string());
 	split++;
 	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_timer.split_name = "^1FIRE ^7";
@@ -286,11 +276,11 @@ icestart_split()
 	while(level.n_staffs_crafted < 3) wait 0.05;
 	level.timer["segment"] settimerup(0);
 
-	level.fire_hud = new_tracked_server_font( "default", 1.4 );
+	level.fire_hud = createServerFontString( "default", 1.4 );
 	level.fire_hud.sort = 2000;
 	level.fire_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.fire_hud.hidewheninmenu = 0;
-    level.fire_hud set_safe_text("^1FIRE ^7" + game_time_string());
+    level.fire_hud setTextUnlimited("^1FIRE ^7" + game_time_string());
 	split++;
 	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_timer.split_name = "^6LIGHTNING ^7";
@@ -298,11 +288,11 @@ icestart_split()
 	while(level.n_staffs_crafted < 4) wait 0.05;
 	level.timer["segment"] settimerup(0);
 
-	level.lightning_hud = new_tracked_server_font( "default", 1.4 );
+	level.lightning_hud = createServerFontString( "default", 1.4 );
 	level.lightning_hud.sort = 2000;
 	level.lightning_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.lightning_hud.hidewheninmenu = 0;
-    level.lightning_hud set_safe_text("^6LIGHTNING ^7" + game_time_string());
+    level.lightning_hud setTextUnlimited("^6LIGHTNING ^7" + game_time_string());
 	split++;
 	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_timer.split_name = "^3FREEDOM ^7";
@@ -316,16 +306,16 @@ icestart_split()
     level waittill("end_game");
 
 	level.ice_timer destroy();
-    level.freedom_hud = new_tracked_server_font( "default", 1.4 );
+    level.freedom_hud = createServerFontString( "default", 1.4 );
 	level.freedom_hud.sort = 2000;
 	level.freedom_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.freedom_hud.hidewheninmenu = 0;
-    level.freedom_hud set_safe_text("^3FREEDOM ^7" + game_time_string());
+    level.freedom_hud setTextUnlimited("^3FREEDOM ^7" + game_time_string());
 }
 
 icestart_timer(x_offset)
 {
-	level.ice_timer = new_tracked_server_font( "default", 1.4 );
+	level.ice_timer = createServerFontString( "default", 1.4 );
 	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset, 91);
 	level.ice_timer.hidewheninmenu = 0;
 	level.ice_timer.split_name = "^3WIND ^7";
@@ -333,7 +323,7 @@ icestart_timer(x_offset)
 	while(true)
 	{
 		time = game_time_string();
-		level.ice_timer set_safe_text(level.ice_timer.split_name + time);
+		level.ice_timer setTextUnlimited(level.ice_timer.split_name + time);
 		wait 0.05;
 	}
 }
@@ -1118,7 +1108,7 @@ ice_menu_robot_cycle_string(starting, robot, decimals = 0)
     level.cycle_string = game_time_string(get_cfg_int("cycle_tracker_ms"));
     level.cycle_string = level.cycle_string + " | cycle " + level.robot_cycle + bool_compare_string(starting, " start", " end");
     level.cycle_string = level.cycle_string + " | " + robots[robot];
-    if(isDefined(level.cycle_display))  level.cycle_display set_safe_text(level.cycle_string);
+    if(isDefined(level.cycle_display))  level.cycle_display setTextUnlimited(level.cycle_string);
     print(level.cycle_string);
 }
 

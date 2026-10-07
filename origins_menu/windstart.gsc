@@ -144,16 +144,6 @@ staff_prints()
 	}
 }
 
-windstart_refresh()
-{
-    if(isDefined(level.cycle_display)) level.cycle_display set_safe_text(level.cycle_string);
-	if(isDefined(level.ice_hud)) level.ice_hud set_safe_text(level.ice_time);
-	if(isDefined(level.wind_hud)) level.wind_hud set_safe_text(level.wind_time);
-	if(isDefined(level.fire_hud)) level.fire_hud set_safe_text(level.fire_time);
-	if(isDefined(level.lightning_hud)) level.lightning_hud  set_safe_text(level.lightning_time);
-	if(isDefined(level.ice_timer))level.ice_timer set_safe_text(level.ice_timer.time);
-}
-
 windstart_toggle_cycle_display()
 {
     setting = "cycle_tracker";
@@ -167,10 +157,10 @@ windstart_toggle_cycle_display()
 
 windstart_cycle_tracker()
 {
-    level.cycle_display = new_tracked_server_font("default", 1.3);
+    level.cycle_display = createServerFontString("default", 1.3);
 	level.cycle_display setpoint("LEFT", "LEFT", 5, -232);
 	level.cycle_display.alpha = 1;
-	level.cycle_display set_safe_text(level.cycle_string);
+	level.cycle_display setTextUnlimited(level.cycle_string);
 }
 
 windstart_kill_plane()
@@ -452,7 +442,7 @@ windstart_split()
     y_increment = 16;
 	split = 1;
 
-	level.timer["segment"] = new_tracked_server_font( "default", 1.3 );
+	level.timer["segment"] = createServerFontString( "default", 1.3 );
 	level.timer["segment"] setpoint( "CENTER", "TOP", 0, 0 );
 	level.timer["segment"].alpha = 0.9;
 
@@ -468,40 +458,40 @@ windstart_split()
     level.game_start_time -= 889950;
 
 	level.ice_time = "^4ICE ^7" + game_time_string();
-	level.ice_hud = new_tracked_server_font( "default", 1.4 );
+	level.ice_hud = createServerFontString( "default", 1.4 );
 	level.ice_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.ice_hud.hidewheninmenu = 0;
-    level.ice_hud set_safe_text(level.ice_time);
+    level.ice_hud setTextUnlimited(level.ice_time);
 	split++;
 
 	while(level.n_staffs_crafted < 2) wait 0.05;
 	level.timer["segment"] settimerup(0);
 
 	level.wind_time = "^3WIND ^7" + game_time_string();
-	level.wind_hud = new_tracked_server_font( "default", 1.4 );
+	level.wind_hud = createServerFontString( "default", 1.4 );
 	level.wind_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.wind_hud.hidewheninmenu = 0;
-    level.wind_hud set_safe_text(level.wind_time);
+    level.wind_hud setTextUnlimited(level.wind_time);
 	split++;
 
 	while(level.n_staffs_crafted < 3) wait 0.05;
 	level.timer["segment"] settimerup(0);
 
 	level.fire_time = "^1FIRE ^7" + game_time_string();
-	level.fire_hud = new_tracked_server_font( "default", 1.4 );
+	level.fire_hud = createServerFontString( "default", 1.4 );
 	level.fire_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.fire_hud.hidewheninmenu = 0;
-    level.fire_hud set_safe_text(level.fire_time);
+    level.fire_hud setTextUnlimited(level.fire_time);
 	split++;
 
 	while(level.n_staffs_crafted < 4) wait 0.05;
 	level.timer["segment"] settimerup(0);
 
 	level.lightning_time = "^6LIGHTNING ^7" + game_time_string();
-	level.lightning_hud = new_tracked_server_font( "default", 1.4 );
+	level.lightning_hud = createServerFontString( "default", 1.4 );
 	level.lightning_hud setpoint( "TOPLEFT", "TOPLEFT", x_offset, 75 + (split * y_increment) );
 	level.lightning_hud.hidewheninmenu = 0;
-    level.lightning_hud set_safe_text(level.lightning_time);
+    level.lightning_hud setTextUnlimited(level.lightning_time);
 	split++;
 
 	level.timer["segment"].alpha = 0;
@@ -512,14 +502,14 @@ windstart_split()
 
 windstart_timer(x_offset)
 {
-	level.ice_timer = new_tracked_server_font( "default", 1.4 );
+	level.ice_timer = createServerFontString( "default", 1.4 );
 	level.ice_timer setpoint( "TOPLEFT", "TOPLEFT", x_offset + 18, 75);
 	level.ice_ice_timerhud.hidewheninmenu = 0;
 
 	while(true)
 	{
 		level.ice_timer.time = game_time_string();
-		level.ice_timer set_safe_text(level.ice_timer.time);
+		level.ice_timer setTextUnlimited(level.ice_timer.time);
 		wait 0.05;
 	}
 }
@@ -1252,7 +1242,7 @@ wind_menu_robot_cycle_string(starting, robot, decimals = 0)
     level.cycle_string = game_time_string(get_cfg_int("cycle_tracker_ms"));
     level.cycle_string = level.cycle_string + " | cycle " + level.robot_cycle + bool_compare_string(starting, " start", " end");
     level.cycle_string = level.cycle_string + " | " + robots[robot];
-    if(isDefined(level.cycle_display))  level.cycle_display set_safe_text(level.cycle_string);
+    if(isDefined(level.cycle_display))  level.cycle_display setTextUnlimited(level.cycle_string);
     print(level.cycle_string);
 }
 

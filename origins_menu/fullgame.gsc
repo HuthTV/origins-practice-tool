@@ -307,11 +307,6 @@ fullgame_box_patch(tier)
 
 //##############MENU FUNCTIONS####################
 
-fullgame_refresh()
-{
-	if(isDefined(level.cycle_display)) level.cycle_display set_safe_text(level.cycle_string);
-}
-
 fullgame_box_tier_text()
 {
 	box_loc = array("normal", "S", "A", "B", "C", "D", "MK2");
@@ -477,10 +472,10 @@ fullgame_toggle_cycle_display()
 
 fullgame_cycle_tracker()
 {
-    level.cycle_display = new_tracked_server_font("default", 1.3);
+    level.cycle_display = createServerFontString("default", 1.3);
 	level.cycle_display setpoint("LEFT", "LEFT", 5, -232);
 	level.cycle_display.alpha = 1;
-	level.cycle_display set_safe_text(level.cycle_string);
+	level.cycle_display setTextUnlimited(level.cycle_string);
 }
 
 fullgame_menu_robot_cycle_string(starting, robot, decimals = 0)
@@ -489,7 +484,7 @@ fullgame_menu_robot_cycle_string(starting, robot, decimals = 0)
     	level.cycle_string = game_time_string(get_cfg_int("cycle_tracker_ms"));
     level.cycle_string = level.cycle_string + " | cycle " + level.robot_cycle + bool_compare_string(starting, " start", " end");
     level.cycle_string = level.cycle_string + " | " + robots[robot];
-    if(isDefined(level.cycle_display))  level.cycle_display set_safe_text(level.cycle_string);
+    if(isDefined(level.cycle_display))  level.cycle_display setTextUnlimited(level.cycle_string);
     print(level.cycle_string);
 }
 

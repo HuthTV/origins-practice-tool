@@ -213,27 +213,12 @@ on_player_spawned_panz()
     self freezecontrols( 0 );
 }
 
-panzprac_refresh()
-{
-    if(isdefined(level.slew))
-	{
-		level.slew.label = &"Slowed: ^6";
-		level.comp.label = &"Complex behaviors: ^6";
-		level.p_hp.label = &"HP: ^6";
-		level.p_mask.label = &"MASK: ^6";
-		level.p_power.label = &"POWERPLANT COVER: ^6";
-		level.p_power_d.label = &"POWERPLANT: ^6";
-		notify_label_text(6);
-	}
-}
-
 slowed()
 {
-	level.slew = self new_tracked_client_font("default", 1.3);
+	level.slew = self createFontString("default", 1.3);
 	level.slew setpoint("LEFT", "LEFT", "LEFT", -105);
 	level.slew.label = &"Slowed: ^6";
 	level.slew.alpha = 1;
-	notify_label_text();
 
 	while(true)
 	{
@@ -246,27 +231,27 @@ slowed()
 
 mech_info()
 {
-	level.comp = new_tracked_server_font("default", 1.3);
+	level.comp = createServerFontString("default", 1.3);
 	level.comp setpoint("LEFT", "LEFT", "LEFT", -120);
 	level.comp.label = &"Complex behaviors: ^6";
 	level.comp.alpha = 1;
 
-	level.p_hp = new_tracked_server_font("default", 1.3);
+	level.p_hp = createServerFontString("default", 1.3);
 	level.p_hp setpoint("LEFT", "LEFT", "LEFT", -15);
 	level.p_hp.label = &"HP: ^6";
 	level.p_hp.alpha = 1;
 
-	level.p_mask = new_tracked_server_font("default", 1.3);
+	level.p_mask = createServerFontString("default", 1.3);
 	level.p_mask setpoint("LEFT", "LEFT", "LEFT", 0);
 	level.p_mask.label = &"MASK: ^6";
 	level.p_mask.alpha = 1;
 
-	level.p_power = new_tracked_server_font("default", 1.3);
+	level.p_power = createServerFontString("default", 1.3);
 	level.p_power setpoint("LEFT", "LEFT", "LEFT", 15);
 	level.p_power.label = &"POWERPLANT COVER: ^6";
 	level.p_power.alpha = 1;
 
-	level.p_power_d = new_tracked_server_font("default", 1.3);
+	level.p_power_d = createServerFontString("default", 1.3);
 	level.p_power_d setpoint("LEFT", "LEFT", "LEFT", 30);
 	level.p_power_d.label = &"POWERPLANT: ^6";
 	level.p_power_d.alpha = 1;
