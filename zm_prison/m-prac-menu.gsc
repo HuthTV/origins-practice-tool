@@ -29,7 +29,7 @@ register_modes()
 main()
 {
 	register_modes();
-	practice_main(mob_practice_map(), "DEV M1");
+	practice_main(mob_practice_map(), "DEV BUILD");
 }
 
 init()

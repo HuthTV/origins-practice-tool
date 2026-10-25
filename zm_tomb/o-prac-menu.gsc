@@ -62,7 +62,7 @@ main()
 	level.foot[FOOT_RIGHT] = "right";
 
 	register_modes();
-	practice_main(shared_practice_map(), "DEV L1");
+	practice_main(shared_practice_map(), "DEV BUILD");
 }
 
 init()
