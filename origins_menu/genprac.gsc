@@ -4,9 +4,11 @@
 #include maps\mp\gametypes_zm\_hud_util;
 #include maps\mp\gametypes_zm\_hud_message;
 #include maps\mp\zombies\_zm_weap_beacon;
+#include maps\mp\zm_tomb_capture_zones;
 
-#include scripts\zm\origins_menu\menu_utility;
-#include scripts\zm\origins_menu\menu_base;
+#include scripts\zm\practice_core\menu_base;
+#include scripts\zm\practice_core\menu_utility;
+#inline scripts\zm\origins_menu\oprac;
 
 genprac_initialize()
 {
@@ -16,21 +18,7 @@ genprac_initialize()
     setDvar("basegame_oopa", 0);
 
     // Initialize genprac-specific cfg system
-    level.mode_cfg = [];
-    level.mode_cfg = genprac_default_cfg();
-    level.mode_cfg_str = "OPRAC/genprac.cfg";
-
-    // Load existing config if exists
-    if(fs_testfile(level.mode_cfg_str))
-    {
-        read_cfg = read_config( level.mode_cfg_str );
-        foreach(setting in getarraykeys(read_cfg))
-            level.mode_cfg[setting] = read_cfg[setting];
-    }
-    else
-    {
-        write_config(level.mode_cfg, level.mode_cfg_str); //create default cfg file
-    }
+    mode_cfg_load("genprac", genprac_default_cfg());
 }
 
 genprac_run()
@@ -97,6 +85,20 @@ on_player_spawned_gen()
         }
         wait 0.05;
     }
+}
+
+genprac_build_menu(root)
+{
+	gen_prac = add_submenu(root, "mapsettings", level.mode.label + " Settings", level.mode.label);
+		gens = add_submenu(gen_prac, "gens", "Active Gens", "Gens");
+			create_option(gens, "Activate All", ::genprac_reset_all_gens);
+			add_cfg_toggle(gens, "Gen 1", "start_bunker");
+			add_cfg_toggle(gens, "Gen 2", "tank_trench");
+			add_cfg_toggle(gens, "Gen 3", "mid_trench");
+			add_cfg_toggle(gens, "Gen 4", "nml_right");
+			add_cfg_toggle(gens, "Gen 5", "nml_left");
+			add_cfg_toggle(gens, "Gen 6", "church");
+		add_cfg_toggle(gen_prac, "Teleport Throws", "teleport_throw");
 }
 
 genprac_reset_all_gens()
