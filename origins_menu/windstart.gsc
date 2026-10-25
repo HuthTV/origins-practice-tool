@@ -92,20 +92,7 @@ windstart_default_cfg()
 	settings_ar["relay_ice"] = 0;
 	settings_ar["relay_village"] = 1;
 
-	settings_ar["temps_1_round"] = 0;
-	settings_ar["temps_2_round"] = 0;
-	settings_ar["temps_2_gen_1"] = 0;
-	settings_ar["temps_3_gen_1"] = 0;
-	settings_ar["temps_2_gen_6"] = 0;
-	settings_ar["temps_3_gen_6"] = 0;
-
-	// Templar gens
-	for(i = 1; i < 7; i++)
-	{
-		settings_ar["temps_1_gen_" + i] = (i < 4);
-		settings_ar["temps_2_gen_" + i] = 1;
-		settings_ar["temps_3_gen_" + i] = 1;
-	}
+	settings_ar = shared_templar_defaults(settings_ar);
 
 	// Robot cycles and feet
 	for(cycle = 1; cycle <= ROBOT_CYCLE_COUNT; cycle++)
@@ -119,7 +106,7 @@ windstart_default_cfg()
 
     settings_ar["rain_foot"] = FOOT_LEFT;
     settings_ar["rain_robot"] = ROBOT_ODIN; // Rain Fire hatch robot (segment default).
-    settings_ar["cycle_tracker_ms"] = 1;
+    settings_ar["cycle_tracker_ms"] = 0;
     settings_ar["cycle_tracker"] = 1;
 
     return settings_ar;

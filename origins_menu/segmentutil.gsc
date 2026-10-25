@@ -903,6 +903,21 @@ shared_craft_maxis_drone()
 // trackers below with replacefunc. shared_set_round marks everything planned
 // before a later start round as already happened.
 
+// Default for Full Game and every segment start: Templar II/III rounds random
+// (0); Templars I at gens 1-3, II and III at gens 2-5.
+shared_templar_defaults(settings_ar)
+{
+    settings_ar["temps_2_round"] = 0;
+    settings_ar["temps_3_round"] = 0;
+    for(i = 1; i < 7; i++)
+    {
+        settings_ar["temps_1_gen_" + i] = (i <= 3);
+        settings_ar["temps_2_gen_" + i] = (i >= 2 && i <= 5);
+        settings_ar["temps_3_gen_" + i] = (i >= 2 && i <= 5);
+    }
+    return settings_ar;
+}
+
 shared_schedules_init(first_templar_round)
 {
     level.panzer_schedule = shared_schedule(8, array("panzer_2", "panzer_3"), 4, 5);

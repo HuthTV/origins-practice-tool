@@ -50,7 +50,7 @@ fullgame_initialize()
 fullgame_default_cfg()
 {
 	settings_ar = [];
-	settings_ar["turbo_restarts"] = 1;
+	settings_ar["turbo_restarts"] = 0;
 	settings_ar["cycle_tracker"] = 1;
     settings_ar["split_nml"] = 0; // Timer menu; off starts the splits at Ice.
 	settings_ar["cycle_tracker_ms"] = 0;
@@ -90,37 +90,26 @@ fullgame_default_cfg()
 	settings_ar["rain_robot"] = ROBOT_ODIN;
 	settings_ar["rain_foot"] = FOOT_RANDOM;
 
-	settings_ar["cycle_1"] = ROBOT_THOR;
-	settings_ar["cycle_2"] = ROBOT_THOR;
-	settings_ar["cycle_3"] = ROBOT_ODIN;
-	settings_ar["cycle_4"] = ROBOT_FREYA;
-
-	settings_ar["foot_4"] = FOOT_LEFT;
-
+	// Every cycle random, then the presets for the first ones.
 	for(cycle = 1; cycle <= ROBOT_CYCLE_COUNT; cycle++)
 	{
 		settings_ar["cycle_" + cycle] = ROBOT_RANDOM;
 		settings_ar["foot_" + cycle] = FOOT_RANDOM;
 	}
+	settings_ar["cycle_1"] = ROBOT_THOR;
+	settings_ar["cycle_2"] = ROBOT_THOR;
+	settings_ar["cycle_3"] = ROBOT_ODIN;
+	settings_ar["cycle_4"] = ROBOT_FREYA;
+	settings_ar["foot_4"] = FOOT_LEFT;
 
 	settings_ar = shared_part_defaults(settings_ar);
-
-	//templar round - 0 random
-	settings_ar["temps_1_round"] = 0;
-	settings_ar["temps_2_round"] = 0;
+	settings_ar = shared_templar_defaults(settings_ar);
 
 	//panzer round - 0 random
 	settings_ar["panzer_2"] = 0;
 	settings_ar["panzer_3"] = 0;
 
-	//active temps generator
-	for(i = 1; i < 7; i++)
-	{
-		settings_ar["temps_1_gen_" + i] = 1;
-		settings_ar["temps_2_gen_" + i] = 1;
-		settings_ar["temps_3_gen_" + i] = 1;
-	}
-
+	return settings_ar;
 }
 
 fullgame_run()
