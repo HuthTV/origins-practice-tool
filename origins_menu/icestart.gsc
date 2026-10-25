@@ -220,7 +220,7 @@ icestart_default_cfg()
 	settings_ar = [];
 
 	// Convert all set_dvar_if_unset calls to cfg defaults
-	settings_ar["peek_code"] = 1; // View the Ice code before the mound opens.
+	settings_ar["peek_code"] = 0; // 1: view the Ice code before the mound opens. Off by default (user, 2026-10-25).
 	settings_ar["dt_start"] = 0;
 	settings_ar["start_loc"] = 1; //0 random 1 floor 2 mule
 	settings_ar["trench_path"] = 0; //0 random, 1 gen2, 2 gen3
@@ -234,7 +234,7 @@ icestart_default_cfg()
 	settings_ar = shared_segment_item_defaults(settings_ar);
 	settings_ar["headshot_reward"] = 0;
 	settings_ar["early_gram"] = 1;
-	settings_ar["auto_round_end"] = 0;
+	settings_ar["auto_round_end"] = 1; // On by default (user, 2026-10-25).
 	settings_ar["auto_round_end_delay"] = 5;
 
 	settings_ar["panzer_2"] = 0;
