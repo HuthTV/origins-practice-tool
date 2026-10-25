@@ -1,0 +1,48 @@
+# Builds both compiled menus on every push and pull request and uploads each as
+# its own artifact: o-prac-menu (Origins) and m-prac-menu (Mob of the Dead), each
+# holding only the compiled script.
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # A gsc-tool release tag (https://github.com/xensik/gsc-tool/releases), or
+  # "latest" to follow new releases. 1.5.1 is the version tested in game; newer
+  # ones compile the menus but produce different bytecode.
+  GSC_TOOL_VERSION: "1.5.1"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get gsc-tool
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GSC_TOOL_VERSION
+          if ($tag -eq "latest") { $tag = gh release view --repo xensik/gsc-tool --json tagName --jq .tagName }
+          Write-Host "gsc-tool $tag"
+          gh release download $tag --repo xensik/gsc-tool --pattern windows-x64-release.zip --dir gsc-tool-download
+          Expand-Archive gsc-tool-download\windows-x64-release.zip -DestinationPath bin -Force
+
+      - name: Build
+        shell: powershell
+        run: .\build.ps1 -Check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: o-prac-menu
+          path: build/origins/compiled/t6/o-prac-menu.gsc
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m-prac-menu
+          path: build/mob/compiled/t6/m-prac-menu.gsc
+          if-no-files-found: error
