@@ -4,27 +4,14 @@
 #include maps\mp\gametypes_zm\_hud_util;
 #include maps\mp\gametypes_zm\_hud_message;
 
-#include scripts\zm\origins_menu\menu_utility;
-#include scripts\zm\origins_menu\menu_base;
+#include scripts\zm\practice_core\menu_base;
+#include scripts\zm\practice_core\menu_utility;
+#inline scripts\zm\origins_menu\oprac;
 
 icecode_initialize()
 {
     // Initialize icecode-specific cfg system
-    level.mode_cfg = [];
-    level.mode_cfg = icecode_default_cfg();
-    level.mode_cfg_str = "OPRAC/icecode.cfg";
-
-    // Load existing config if exists
-    if(fs_testfile(level.mode_cfg_str))
-    {
-        read_cfg = read_config( level.mode_cfg_str );
-        foreach(setting in getarraykeys(read_cfg))
-            level.mode_cfg[setting] = read_cfg[setting];
-    }
-    else
-    {
-        write_config(level.mode_cfg, level.mode_cfg_str); //create default cfg file
-    }
+    mode_cfg_load("icecode", icecode_default_cfg());
 }
 
 icecode_run()
@@ -44,6 +31,12 @@ icecode_run()
     wait 12.5;
     gaming freezecontrols( 0 );
     setDvar("timescale", 1);
+}
+
+icecode_build_menu(root)
+{
+	settings = add_submenu(root, "mapsettings", level.mode.label + " Settings", level.mode.label);
+		create_option(settings, "RLACE: ^3 s", ::menu_not_implemented);
 }
 
 icecode_perks_weapons()

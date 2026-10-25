@@ -4,8 +4,9 @@
 #include maps\mp\gametypes_zm\_hud_util;
 #include maps\mp\gametypes_zm\_hud_message;
 
-#include scripts\zm\origins_menu\menu_utility;
-#include scripts\zm\origins_menu\menu_base;
+#include scripts\zm\practice_core\menu_base;
+#include scripts\zm\practice_core\menu_utility;
+#inline scripts\zm\origins_menu\oprac;
 
 panzprac_initialize()
 {
@@ -13,21 +14,7 @@ panzprac_initialize()
 	replacefunc( maps\mp\zombies\_zm_ai_mechz::mechz_spawn, ::panzprac_mechz_spawn);
 
     // Initialize panzprac-specific cfg system
-    level.mode_cfg = [];
-    level.mode_cfg = panzprac_default_cfg();
-    level.mode_cfg_str = "OPRAC/panzprac.cfg";
-
-    // Load existing config if exists
-    if(fs_testfile(level.mode_cfg_str))
-    {
-        read_cfg = read_config( level.mode_cfg_str );
-        foreach(setting in getarraykeys(read_cfg))
-            level.mode_cfg[setting] = read_cfg[setting];
-    }
-    else
-    {
-        write_config(level.mode_cfg, level.mode_cfg_str); //create default cfg file
-    }
+    mode_cfg_load("panzprac", panzprac_default_cfg());
 }
 
 panzprac_run()
@@ -56,6 +43,16 @@ on_player_connect_panz()
 	}
 }
 
+
+panzprac_build_menu(root)
+{
+	panz_prac = add_submenu(root, "mapsettings", level.mode.label + " Settings", level.mode.label);
+		box_names = array("gen4", "gen5", "mid");
+		create_option(panz_prac, "Box: ^3" + box_names[get_cfg_int("box")], ::panzprac_cycle_box);
+		add_cfg_toggle(panz_prac, "Claymore", "clay");
+		create_option(panz_prac, "Prefills: ^3" + get_cfg_int("prefills"), ::cfg_increment_int, "prefills", array(5, 15));
+		add_cfg_toggle(panz_prac, "Hud Info", "hud");
+}
 
 panzprac_cycle_box()
 {
@@ -385,7 +382,7 @@ panzprac_mechz_spawn()
         self thread maps\mp\zombies\_zm_ai_mechz::mechz_find_flesh();
     self thread maps\mp\zombies\_zm_ai_mechz_booster::mechz_jump_think( spawn_pos );
     self setcandamage( 1 );
-    self init_anim_rate();
+    self maps\mp\zombies\_zm_ai_mechz::init_anim_rate();
     self maps\mp\zombies\_zm_ai_mechz_ffotd::spawn_end();
 
 	if(get_cfg_int("hud")) self thread mech_info();

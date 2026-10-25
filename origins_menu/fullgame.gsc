@@ -3,20 +3,25 @@
 #include maps\mp\zombies\_zm_utility;
 #include maps\mp\gametypes_zm\_hud_util;
 #include maps\mp\gametypes_zm\_hud_message;
+#include maps\mp\zombies\_zm_powerups;
+#include maps\mp\zm_tomb_dig;
 
-#include scripts\zm\origins_menu\menu_utility;
-#include scripts\zm\origins_menu\menu_base;
+#include scripts\zm\practice_core\menu_base;
+#include scripts\zm\practice_core\menu_utility;
+#include scripts\zm\origins_menu\origins;
+#include scripts\zm\origins_menu\segmentutil;
+#inline scripts\zm\origins_menu\oprac;
 
 fullgame_initialize()
 {
-	replaceFunc(maps\mp\zm_tomb_giant_robot::robot_cycling, ::fullgame_robot_cycling);
-	//replaceFunc(maps\mp\zm_tomb_giant_robot::giant_robot_start_walk, ::fullgame_giant_robot_start_walk);
+	replaceFunc(maps\mp\zm_tomb_giant_robot::robot_cycling, ::shared_robot_cycling);
 
-	replacefunc( maps\mp\zombies\_zm_craftables::generate_zombie_craftable_piece, ::fullgame_generate_zombie_craftable_piece);
-	replacefunc( maps\mp\zm_tomb_craftables::randomize_craftable_spawns, ::fullgame_randomize_craftable_spawns);
+	replacefunc( maps\mp\zombies\_zm_craftables::generate_zombie_craftable_piece, ::shared_generate_zombie_craftable_piece);
+	replacefunc( maps\mp\zm_tomb_craftables::randomize_craftable_spawns, ::shared_randomize_craftable_spawns);
 
 	replacefunc( maps\mp\zm_tomb_capture_zones::get_recapture_zone, ::fullgame_get_recapture_zone);
-	replacefunc( maps\mp\zm_tomb_capture_zones::recapture_round_tracker, ::fullgame_recapture_round_tracker);
+	replacefunc( maps\mp\zm_tomb_capture_zones::recapture_round_tracker, ::shared_recapture_round_tracker);
+	replacefunc( maps\mp\zombies\_zm_ai_mechz_ffotd::mechz_round_tracker_loop_start, ::shared_mechz_round_tracker_loop_start);
 
 	replacefunc( maps\mp\zm_tomb_dig::dig_spots_respawn, ::fullgame_dig_spots_respawn);
 	replacefunc( maps\mp\zm_tomb_dig::waittill_dug, ::fullgame_waittill_dug);
@@ -33,48 +38,21 @@ fullgame_initialize()
 	flag_init("fullgame_fist_of_iron_nuke_dropped");
 	flag_clear("fullgame_fist_of_iron_nuke_dropped");
 
-	level.robot[0] = "random";
-	level.robot[1] = "odin";
-	level.robot[2] = "thor";
-	level.robot[3] = "freya";
-	level.robot["random"] = 0;
-	level.robot["odin"] = 1;
-	level.robot["thor"] = 2;
-	level.robot["freya"] = 3;
-
-	level.foot[-1] = "random";
-	level.foot[0] = "left";
-	level.foot[1] = "right";
-	level.foot["random"] = -1;
-	level.foot["left"] = 0;
-	level.foot["right"] = 1;
-
 	level.cycle_string = "awating robot cycle";
 	level.first_dig_list = array("random", "bonus_points_player", "nuke", "double_points", "zombie_blood", "ballista_zm", "c96_zm", "870mcs_zm", "dsr50_zm", "srm1216_zm");
 	level.robot_cycle = 0;
-	level.n_disc_scrambles = 0;
-	level.custom_cycles = 17;
+	level.n_disc_scrambles = 0; // First mound opening selects disc_1; each orb step selects the next.
 
-	level.mode_cfg = [];
-	level.mode_cfg = fullgame_default_cfg();
-	level.mode_cfg_str = "OPRAC/fullgame.cfg";
-
-	if(fs_testfile(level.mode_cfg_str))
-	{
-		read_cfg = read_config( level.mode_cfg_str );
-		foreach(setting in getarraykeys(read_cfg))
-			level.mode_cfg[setting] = read_cfg[setting];
-	}
-    else
-	{
-		write_config( level.mode_cfg, level.mode_cfg_str ); //create default cfg file
-	}
+	mode_cfg_load("fullgame", fullgame_default_cfg());
+	shared_schedules_init(10);
 }
 
 fullgame_default_cfg()
 {
 	settings_ar = [];
+	settings_ar["turbo_restarts"] = 1;
 	settings_ar["cycle_tracker"] = 1;
+    settings_ar["nml_split"] = 0;
 	settings_ar["cycle_tracker_ms"] = 0;
 
 	settings_ar["fullgame_first_powerup"] = 0;
@@ -109,38 +87,23 @@ fullgame_default_cfg()
 
 	settings_ar["mechz_delay"] = "0";
 
-	settings_ar["rain_robot"] = level.robot["odin"];
-	settings_ar["rain_foot"] = level.foot["random"];
+	settings_ar["rain_robot"] = ROBOT_ODIN;
+	settings_ar["rain_foot"] = FOOT_RANDOM;
 
-	settings_ar["cycle_1"] = level.robot["thor"];
-	settings_ar["cycle_2"] = level.robot["thor"];
-	settings_ar["cycle_3"] = level.robot["odin"];
-	settings_ar["cycle_4"] = level.robot["freya"];
+	settings_ar["cycle_1"] = ROBOT_THOR;
+	settings_ar["cycle_2"] = ROBOT_THOR;
+	settings_ar["cycle_3"] = ROBOT_ODIN;
+	settings_ar["cycle_4"] = ROBOT_FREYA;
 
-	settings_ar["foot_4"] = level.foot["left"];
+	settings_ar["foot_4"] = FOOT_LEFT;
 
-	for(cycle = 1; cycle <= level.custom_cycles; cycle++)
+	for(cycle = 1; cycle <= ROBOT_CYCLE_COUNT; cycle++)
 	{
-		settings_ar["cycle_" + cycle] = level.robot["random"];
-		settings_ar["foot_" + cycle] = level.foot["random"];
+		settings_ar["cycle_" + cycle] = ROBOT_RANDOM;
+		settings_ar["foot_" + cycle] = FOOT_RANDOM;
 	}
 
-	//disc gram locs - 0 random
-	settings_ar["gramophone_vinyl_player_loc"] = 0;
-	settings_ar["gramophone_vinyl_master_loc"] = 0;
-	settings_ar["gramophone_vinyl_air_loc"] = 0;
-	settings_ar["gramophone_vinyl_ice_loc"] = 0;
-	settings_ar["gramophone_vinyl_fire_loc"] = 0;
-	settings_ar["gramophone_vinyl_elec_loc"] = 0;
-
-	//Maxis parts locs - 0 random
-	settings_ar["maxis_body"] = 0;
-	settings_ar["maxis_engine"] = 0;
-
-	//shield part locs - 0 random
-	settings_ar["shield_gen2"] = 0;
-	settings_ar["shield_gen3"] = 0;
-	settings_ar["shield_nml"] = 0;
+	settings_ar = shared_part_defaults(settings_ar);
 
 	//templar round - 0 random
 	settings_ar["temps_1_round"] = 0;
@@ -163,8 +126,7 @@ fullgame_default_cfg()
 fullgame_run()
 {
 	if(get_cfg_int("turbo_restarts")) setDvar("timescale", 10);
-	level thread fullgame_force_wheater();
-	level thread fullgame_panzer_rounds();
+	level thread fullgame_force_weather();
 
 	fizz_loc = get_cfg_int("fizz_location");
 	if(fizz_loc) level thread fullgame_fizz_start_location(fizz_loc);
@@ -174,18 +136,25 @@ fullgame_run()
 
 	box_tier = get_cfg_int("box_tier");
 	if(box_tier) level thread fullgame_box_patch(box_tier);
+	else if(get_cfg_int("box_no_stock_mp40")) level thread fullgame_box_no_stock_mp40();
+	level.fullgame_box_hits = 0;
+	level.customrandomweaponweights = ::fullgame_box_hit_weights;
 
 	flag_wait("initial_blackscreen_passed");
+    level.game_start_time = gettime();
+    level thread shared_segment_timer(int_compare(get_cfg_int("nml_split"), SPLIT_NML, SPLIT_ICE));
 	setDvar("timescale", 1);
 	flag_set("menu_active");
 
-	if(get_cfg_int("cycle_tracker")) level thread fullgame_cycle_tracker();
+	// Not the route, but Part and Vinyl Locations offer "collected" in every mode.
+	get_players()[0] shared_give_collected_items();
+	if(get_cfg_int("cycle_tracker")) level thread shared_cycle_tracker();
 }
 
 
 //##############GAME FUNCTIONS####################
 
-fullgame_force_wheater()
+fullgame_force_weather()
 {
 	level waittill("start_of_round");
 	if(get_cfg_int("early_ice")) level.force_weather[2] = "rain";
@@ -193,28 +162,6 @@ fullgame_force_wheater()
 	if(get_cfg_int("r4_snow")) level.force_weather[4] = "snow";
 }
 
-fullgame_panzer_rounds()
-{
-	flag_wait("initial_blackscreen_passed");
-	level.mechz_left_to_spawn = 0;
-	while(!level.mechz_left_to_spawn) wait 0.05;
-	val = get_cfg_int("panzer_2");
-	if(0 < val)
-	{
-		temp_round = level.next_mechz_round;
-		wait 20;
-		level.next_mechz_round = temp_round + val;
-	}
-	wait 20;
-	while(!level.mechz_left_to_spawn) wait 0.05;
-	val = get_cfg_int("panzer_3");
-	if(0 < val)
-	{
-		temp_round = level.next_mechz_round;
-		wait 20;
-		level.next_mechz_round = temp_round + val;
-	}
-}
 
 fullgame_fizz_start_location(loc)
 {
@@ -281,10 +228,7 @@ fullgame_box_patch(tier)
 	foreach(weapon in level.zombie_weapons)
 		weapon.is_in_box = 0;
 
-	if(get_cfg_int("box_no_stock_mp40"))
-		{mpf = "mp40_zm";}
-	else
-		{mpf = "mp40_stalker_zm";}
+	mpf = fullgame_box_mp40();
 
 	switch(tier)
 	{
@@ -305,299 +249,148 @@ fullgame_box_patch(tier)
 		level.zombie_weapons[weapon].is_in_box = 1;
 }
 
+// The box's MP40. Vanilla boxes only the stock MP40 (mp40_stalker_zm); the MP40
+// no-stock setting swaps in mp40_zm.
+fullgame_box_mp40()
+{
+	if(get_cfg_int("box_no_stock_mp40")) return "mp40_zm";
+	return "mp40_stalker_zm";
+}
+
+// Normal box tier with MP40 no-stock on: swap the box's MP40.
+fullgame_box_no_stock_mp40()
+{
+	level.zombie_weapons["mp40_stalker_zm"].is_in_box = 0;
+	level.zombie_weapons["mp40_zm"].is_in_box = 1;
+}
+
+// Every gun the box can give on Origins, for the Hit 1 and Hit 2 settings. The
+// saved value is the index; 0 is random.
+fullgame_box_hit_options()
+{
+	options = spawnstruct();
+	options.weapons = [];
+	options.labels = [];
+	fullgame_add_box_hit_option(options, "", "random");
+	fullgame_add_box_hit_option(options, "scar_zm", "SCAR-H");
+	fullgame_add_box_hit_option(options, "galil_zm", "Galil");
+	fullgame_add_box_hit_option(options, "ak74u_extclip_zm", "AK74u");
+	fullgame_add_box_hit_option(options, "evoskorpion_zm", "Skorpion EVO");
+	fullgame_add_box_hit_option(options, fullgame_box_mp40(), "MP40"); // The no-stock one only with MP40 no-stock.
+	fullgame_add_box_hit_option(options, "pdw57_zm", "PDW-57");
+	fullgame_add_box_hit_option(options, "mg08_zm", "MG08/15");
+	fullgame_add_box_hit_option(options, "hamr_zm", "HAMR");
+	fullgame_add_box_hit_option(options, "type95_zm", "Type 25");
+	fullgame_add_box_hit_option(options, "thompson_zm", "M1927");
+	fullgame_add_box_hit_option(options, "fivesevendw_zm", "Five-seven DW");
+	fullgame_add_box_hit_option(options, "beretta93r_extclip_zm", "B23R");
+	fullgame_add_box_hit_option(options, "kard_zm", "KAP-40");
+	fullgame_add_box_hit_option(options, "qcw05_zm", "Chicom CQB");
+	fullgame_add_box_hit_option(options, "fnfal_zm", "FAL");
+	fullgame_add_box_hit_option(options, "srm1216_zm", "M1216");
+	fullgame_add_box_hit_option(options, "ksg_zm", "KSG");
+	fullgame_add_box_hit_option(options, "dsr50_zm", "DSR 50");
+	fullgame_add_box_hit_option(options, "python_zm", "Python");
+	fullgame_add_box_hit_option(options, "m32_zm", "War Machine");
+	fullgame_add_box_hit_option(options, "ray_gun_zm", "Ray Gun");
+	fullgame_add_box_hit_option(options, "raygun_mark2_zm", "Ray Gun Mark II");
+	fullgame_add_box_hit_option(options, "cymbal_monkey_zm", "Monkey Bombs");
+	return options;
+}
+
+fullgame_add_box_hit_option(options, weapon, label)
+{
+	options.weapons[options.weapons.size] = weapon;
+	options.labels[options.labels.size] = label;
+}
+
+// Vanilla treasure_chest_chooseweightedrandomweapon calls this once per box hit
+// with the shuffled weapon list and gives the first weapon in it the player can
+// receive. On the first two hits, the Hit 1/Hit 2 gun goes to the front; if the
+// player cannot receive it (not in the box, already owned, limit reached), the
+// box picks randomly as usual.
+fullgame_box_hit_weights(keys)
+{
+	level.fullgame_box_hits++;
+	if(level.fullgame_box_hits > 2) return keys;
+
+	choice = get_cfg_int("box_hit_" + level.fullgame_box_hits);
+	options = fullgame_box_hit_options();
+	if(choice <= 0 || choice >= options.weapons.size) return keys;
+
+	forced = [];
+	forced[0] = options.weapons[choice];
+	foreach(key in keys) forced[forced.size] = key;
+	return forced;
+}
+
 //##############MENU FUNCTIONS####################
 
-fullgame_box_tier_text()
+fullgame_build_menu(root)
 {
-	box_loc = array("normal", "S", "A", "B", "C", "D", "MK2");
-	return box_loc[get_cfg_int("box_tier")];
+	settings = add_submenu(root, "mapsettings", level.mode.label + " Settings", level.mode.label);
+		add_cfg_toggle(settings, "Super Fast Restarts", "turbo_restarts"); // Other modes handle setup timescale themselves.
+		add_cfg_toggle(settings, "NML Split", "nml_split", "^2Yes", "^1No");
+
+	self shared_build_robot_menus(root, ::fullgame_all_random_cycles);
+	self shared_build_templar_menu(root);
+
+	self shared_build_vinyls_menu(root);
+	self shared_build_parts_menu(root);
+
+	randomness = add_submenu(root, "randomness", "Randomness", "RNG");
+		digs = add_submenu(randomness, "digs", "Dig Settings", "Digs");
+			add_cfg_toggle(digs, "Trenches", "bunker_dig", "^3early", "^3normal");
+			add_cfg_toggle(digs, "NML", "nml_dig", "^3early", "^3normal");
+			add_cfg_toggle(digs, "Church", "village_dig", "^3early", "^3normal");
+			add_cfg_choice(digs, "First Dig", "1st_dig", array("random", "blood money", "nuke", "double points", "zombie blood", "ballista", "mauser", "remington", "DSR50", "M1216"));
+			add_cfg_toggle(digs, "Ending Blood", "blood_dig");
+			add_cfg_toggle(digs, "Round 10 Spots", "r10_digs");
+			add_cfg_toggle(digs, "Ending Spots", "ending_digs");
+			add_cfg_toggle(digs, "Early Ice Spots", "early_ice");
+			add_cfg_toggle(digs, "Round 4 Snow", "r4_snow");
+			add_cfg_toggle(digs, "Points Always 250", "250_digs");
+
+		self shared_build_disc_menu(randomness);
+
+		fizz = add_submenu(randomness, "fizz", "Wunderfizz", "Fizz");
+			perks = array("^1r^3a^2n^5d^4o^1m ^3p^2e^5r^4k", "^3double tap", "^2speed cola", "^8deadshot", "^1juggernog", "^3stamin-up", "^2mule kick", "^6PhD flopper", "^9electric cherry", "^5quick revive");
+			add_cfg_choice(fizz, "Location", "fizz_location", array("random", "gen 4", "gen 5"));
+			add_cfg_choice(fizz, "Fizz 1", "fizz_1", perks);
+			add_cfg_choice(fizz, "Fizz 2", "fizz_2", perks);
+
+		panzer = self shared_build_panzer_menu(randomness);
+			create_option(panzer, "Panzer AFD delay: ^3" + fullgame_mechz_rain_text(), ::fullgame_mechz_rain_rng);
+			create_option(panzer, "-panzer blood", ::menu_not_implemented);
+
+		box = add_submenu(randomness, "box", "Mystery Box", "Box");
+			add_cfg_choice(box, "Location", "box_location", array("random", "gen 3", "gen 2"));
+			add_cfg_choice(box, "Box tier", "box_tier", array("normal", "S", "A", "B", "C", "D", "MK2"));
+			add_cfg_toggle(box, "MP40 no-stock", "box_no_stock_mp40");
+			box_guns = fullgame_box_hit_options();
+			add_cfg_choice(box, "Hit 1", "box_hit_1", box_guns.labels);
+			add_cfg_choice(box, "Hit 2", "box_hit_2", box_guns.labels);
+
+		powerups = add_submenu(randomness, "powerups", "Powerups");
+			add_cfg_choice(powerups, "First Powerup", "fullgame_first_powerup", array("random", "nuke", "double points", "max ammo", "zombie blood", "insta kill"));
+			add_cfg_toggle(powerups, "Fist of Iron Nuke", "fullgame_fist_of_iron_nuke");
+
+		presets = add_submenu(randomness, "presets", "Game Presets", "Presets");
+			create_option(presets, "-29 rng", ::menu_not_implemented);
+			create_option(presets, "-perfect 29 rng", ::menu_not_implemented);
+			create_option(presets, "-f4d rng", ::menu_not_implemented);
 }
 
-fullgame_box_loc_text()
-{
-	box_loc = array("random", "gen 3", "gen 2");
-	return box_loc[get_cfg_int("box_location")];
-}
-
-fullgame_fizz_loc_text()
-{
-	fizz_loc = array("random", "gen 4", "gen 5");
-	return fizz_loc[get_cfg_int("fizz_location")];
-}
-
-fullgame_fizz_hit_text(hit)
-{
-	perk_list = array("^1r^3a^2n^5d^4o^1m ^3p^2e^5r^4k", "^3double tap", "^2speed cola", "^8deadshot", "^1juggernog", "^3stamin-up", "^2mule kick", "^6PhD flopper", "^9electric cherry", "^5quick revive");
-	return perk_list[get_cfg_int("fizz_" + hit)];
-}
-
-fullgame_first_dig_text()
-{
-	first_dig_list_names = array("random", "blood money", "nuke", "duble points", "zombie blood", "ballista", "mauser", "remington", "DSR50", "M1216");
-	return first_dig_list_names[get_cfg_int("1st_dig")];
-}
-
-fullgame_reset_vinyls_loc()
-{
-	level.mode_cfg["gramophone_vinyl_player_loc"] = 0;
-	level.mode_cfg["gramophone_vinyl_master_loc"] = 0;
-	level.mode_cfg["gramophone_vinyl_air_loc"] = 0;
-	level.mode_cfg["gramophone_vinyl_ice_loc"] = 0;
-	level.mode_cfg["gramophone_vinyl_fire_loc"] = 0;
-	level.mode_cfg["gramophone_vinyl_elec_loc"] = 0;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_reset_part_loc()
-{
-	level.mode_cfg["maxis_body"] = 0;
-	level.mode_cfg["maxis_engine"] = 0;
-	level.mode_cfg["shield_gen2"] = 0;
-	level.mode_cfg["shield_gen3"] = 0;
-	level.mode_cfg["shield_nml"] = 0;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_random_discs()
-{
-	level.mode_cfg["disc_1"] = 0;
-	level.mode_cfg["disc_2"] = 0;
-	level.mode_cfg["disc_3"] = 0;
-	level.mode_cfg["disc_4"] = 0;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_perfect_discs()
-{
-	level.mode_cfg["disc_1"] = 2222;
-	level.mode_cfg["disc_2"] = 1222;
-	level.mode_cfg["disc_3"] = 2112;
-	level.mode_cfg["disc_4"] = 1121;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_worst_discs()
-{
-	level.mode_cfg["disc_1"] = 2122;
-	level.mode_cfg["disc_2"] = 1122;
-	level.mode_cfg["disc_3"] = 1211;
-	level.mode_cfg["disc_4"] = 2222;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
 
 fullgame_all_random_cycles()
 {
-	level.mode_cfg["rain_robot"] = level.robot["random"];
-	for(i = 1; i <= level.custom_cycles; i++)
-		level.mode_cfg["cycle_" + i] = level.robot["random"];
+	level.mode_cfg["rain_robot"] = ROBOT_RANDOM;
+	for(i = 1; i <= ROBOT_CYCLE_COUNT; i++)
+		level.mode_cfg["cycle_" + i] = ROBOT_RANDOM;
 	write_config(level.mode_cfg, level.mode_cfg_str);
     self refresh_menu();
 }
 
-fullgame_all_random_feet()
-{
-	level.mode_cfg["rain_foot"] = level.foot["random"];
-	for(i = 1; i <= level.custom_cycles; i++)
-		level.mode_cfg["foot_" + i] = level.foot["random"];
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_gram_to_text()
-{
-	locs = array("random", "far", "close");
-	return locs[get_cfg_int("gramophone_vinyl_player_loc")];
-}
-
-fullgame_maxis_to_text(part)
-{
-	locs = [];
-	locs["maxis_body"] = array("random", "tunnel", "gen 5", "gen 4");
-	locs["maxis_engine"] = array("random", "pap", "gram", "scaffolding");
-
-	return locs[part][get_cfg_int(part)];
-}
-
-fullgame_disk_to_text(part)
-{
-	locs = [];
-	locs["gramophone_vinyl_master_loc"] = array("random", "wheelbarrow", "stairs", "back");
-	locs["gramophone_vinyl_air_loc"] = array("random", "tunnel", "boxes", "stam");
-	locs["gramophone_vinyl_ice_loc"] = array("random", "dial", "mystery box", "table");
-	locs["gramophone_vinyl_fire_loc"] = array("random", "top", "gen", "bottom");
-	locs["gramophone_vinyl_elec_loc"] = array("random", "fizz", "tunnel", "wagon");
-
-	return locs[part][get_cfg_int(part)];
-}
-
-fullgame_shield_to_text(part)
-{
-	locs = [];
-	locs["shield_gen2"] = array("random", "claymore", "wheelbarrow", "footprint");
-	locs["shield_gen3"] = array("random", "tunnel", "wheelbarrow", "ak74u");
-	locs["shield_nml"] = array("random", "gen 4 box", "gen 4 side", "gen 5 side");
-
-	return locs[part][get_cfg_int(part)];
-}
-
-fullgame_cycle_panzer( num )
-{
-	setting = "panzer_" + num;
-	switch(get_cfg_int(setting))
-	{
-		case 0: level.mode_cfg[setting] = 4; break;
-		case 4: level.mode_cfg[setting] = 5; break;
-        case 5:
-		default: level.mode_cfg[setting] = 0; break;
-	}
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_toggle_cycle_display()
-{
-    setting = "cycle_tracker";
-    	new_status = 1 - get_cfg_int(setting);
-    level.mode_cfg[setting] = new_status;
-    write_config(level.mode_cfg, level.mode_cfg_str);
-    if(new_status) level thread fullgame_cycle_tracker();
-    else level.cycle_display destroy();
-    self refresh_menu();
-}
-
-fullgame_cycle_tracker()
-{
-    level.cycle_display = createServerFontString("default", 1.3);
-	level.cycle_display setpoint("LEFT", "LEFT", 5, -232);
-	level.cycle_display.alpha = 1;
-	level.cycle_display setTextUnlimited(level.cycle_string);
-}
-
-fullgame_menu_robot_cycle_string(starting, robot, decimals = 0)
-{
-    robots = array("odin", "thor", "freya", "trios");
-    	level.cycle_string = game_time_string(get_cfg_int("cycle_tracker_ms"));
-    level.cycle_string = level.cycle_string + " | cycle " + level.robot_cycle + bool_compare_string(starting, " start", " end");
-    level.cycle_string = level.cycle_string + " | " + robots[robot];
-    if(isDefined(level.cycle_display))  level.cycle_display setTextUnlimited(level.cycle_string);
-    print(level.cycle_string);
-}
-
-
-fullgame_toggle_templar_round(set)
-{
-	setting = "temps_" + set + "_round";
-	templar_round = get_cfg_int(setting);
-	switch(templar_round)
-	{
-		case 0: level.mode_cfg[setting] = 3; break;
-		case 3: level.mode_cfg[setting] = 4; break;
-		case 4: level.mode_cfg[setting] = 5; break;
-		case 5:
-		default: level.mode_cfg[setting] = 0; break;
-	}
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_temp_round_to_text(set)
-{
-	setting = "temps_" + set + "_round";
-	val = get_cfg_int(setting);
-
-	if(val) return val + " round";
-	else 	return "random";
-}
-
-fullgame_reset_scramble( num )
-{
-	setting = "disc_" + num;
-	level.mode_cfg[setting] = 0;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_flip_scramble(index, num)
-{
-	setting = "disc_" + num;
-	scramble = get_cfg_int(setting);
-	if(!isDefined(scramble))
-		scramble = 0;
-	if(scramble < 1)
-	{
-		level.mode_cfg[setting] = 1111;
-		write_config(level.mode_cfg, level.mode_cfg_str);
-		self refresh_menu();
-		return;
-	}
-
-	pow = pow( 10, (3 - index) );
-	val = int(scramble / pow) % 10;
-
-	if(val == 1)
-		scramble = scramble + pow;
-	else
-		scramble = scramble - pow;
-
-	level.mode_cfg[setting] = scramble;
-	write_config(level.mode_cfg, level.mode_cfg_str);
-	self refresh_menu();
-}
-
-fullgame_scramble_text( index, num )
-{
-	setting = "disc_" + num;
-	scramble = get_cfg_int(setting);
-	if(scramble)
-	{
-		color = array("blue", "purple", "red", "yellow");
-		colors = array("^4", "^6", "^1", "^3");
-		decoded = [];
-		prev_disc_pos = 0;
-		for( i = 1; i < 5; i++)
-		{
-			turn = int(scramble / pow( 10, 4 - i )) % 10;
-			decoded[i - 1] = (prev_disc_pos + turn) % 4;
-			prev_disc_pos = decoded[i - 1];
-		}
-		return colors[decoded[index]] + "[" + "] " + color[decoded[index]];
-	}
-	else
-	{
-		return "^8[] random";
-	}
-}
-
-fullgame_scramble_text_line( num )
-{
-	setting = "disc_" + num;
-	scramble = get_cfg_int(setting);
-	if(scramble)
-	{
-		inline = "^8]";
-		color = array("B", "P", "R", "Y");
-		colors = array("^4", "^6", "^1", "^3");
-		decoded = [];
-		prev_disc_pos = 0;
-		for( i = 1; i < 5; i++)
-		{
-			turn = int(scramble / pow( 10, 4 - i )) % 10;
-			prev_disc_pos = (prev_disc_pos + turn) % 4;
-			inline = colors[prev_disc_pos] + color[prev_disc_pos] + inline;
-		}
-		inline = "^8[" + inline;
-		return inline;
-	}
-	else
-	{
-		return "^8[random]";
-	}
-}
 
 fullgame_mechz_rain_text()
 {
@@ -633,12 +426,6 @@ fullgame_mechz_rain_rng()
 
 	write_config(level.mode_cfg, level.mode_cfg_str);
 	self refresh_menu();
-}
-
-fullgame_first_powerup_text()
-{
-	powerups = array("random", "nuke", "double points", "max ammo", "zombie blood", "insta kill");
-	return powerups[get_cfg_int("fullgame_first_powerup")];
 }
 
 //##############hud elements####################
@@ -871,334 +658,6 @@ fullgame_dig_spot_get_staff_piece(e_player)
 	return undefined;
 }
 
-fullgame_randomize_craftable_spawns()
-{
-	a_randomized_craftables = array("gramophone_vinyl_ice", "gramophone_vinyl_air", "gramophone_vinyl_elec", "gramophone_vinyl_fire", "gramophone_vinyl_master", "gramophone_vinyl_player");
-	foreach(str_craftable in a_randomized_craftables)
-	{
-		s_original_pos = getstruct(str_craftable, "targetname");
-		a_alt_locations = getstructarray(str_craftable + "_alt", "targetname");
-		setting =get_cfg_int(str_craftable + "_loc");
-		if(setting)
-		{
-			n_loc_index = setting - 1;
-		}
-		else
-		{
-			n_loc_index = randomintrange(0, a_alt_locations.size + 1);
-		}
-		if(n_loc_index == a_alt_locations.size)
-		{
-			continue;
-		}
-		s_original_pos.origin = a_alt_locations[n_loc_index].origin;
-		s_original_pos.angles = a_alt_locations[n_loc_index].angles;
-	}
-}
-
-fullgame_generate_zombie_craftable_piece(craftablename, piecename, modelname, radius, height, drop_offset, hud_icon, onpickup, ondrop, oncrafted, use_spawn_num, tag_name, can_reuse, client_field_value, is_shared, vox_id, b_one_time_vo)
-{
-	if(!isDefined(is_shared))
-	{
-		is_shared = 0;
-	}
-	if(!isDefined(b_one_time_vo))
-	{
-		b_one_time_vo = 0;
-	}
-	precachemodel(modelname);
-	if(isDefined(hud_icon))
-	{
-		precacheshader(hud_icon);
-	}
-	piecestub = spawnstruct();
-	craftable_pieces = [];
-	piece_alias = "";
-	if(!isDefined(piecename))
-	{
-		piecename = modelname;
-	}
-	craftable_pieces_structs = getstructarray(craftablename + "_" + piecename, "targetname");
-	foreach(index, struct in craftable_pieces_structs)
-	{
-		craftable_pieces[index] = struct;
-		craftable_pieces[index].hasspawned = 0;
-	}
-	spawns = undefined;
-	loc_override = 0;
-	switch(piecename)
-	{
-		case "body": loc_override = get_cfg_int("maxis_body"); break;
-		case "engine": loc_override = get_cfg_int("maxis_engine"); break;
-
-		case "top": loc_override = get_cfg_int("shield_gen3"); break;
-		case "door": loc_override = get_cfg_int("shield_nml"); break;
-		case "bracket": loc_override = get_cfg_int("shield_gen2"); break;
-	}
-	if(loc_override)
-	{
-		spawns = force_craftable_spawn_location(craftable_pieces, loc_override);
-	}
-	else
-	{
-		spawns = craftable_pieces;
-	}
-	piecestub.spawns = spawns;
-	piecestub.craftablename = craftablename;
-	piecestub.piecename = piecename;
-	piecestub.modelname = modelname;
-	piecestub.hud_icon = hud_icon;
-	piecestub.radius = radius;
-	piecestub.height = height;
-	piecestub.tag_name = tag_name;
-	piecestub.can_reuse = can_reuse;
-	piecestub.drop_offset = drop_offset;
-	piecestub.max_instances = 256;
-	piecestub.onpickup = onpickup;
-	piecestub.ondrop = ondrop;
-	piecestub.oncrafted = oncrafted;
-	piecestub.use_spawn_num = use_spawn_num;
-	piecestub.is_shared = is_shared;
-	piecestub.vox_id = vox_id;
-	if(isDefined(b_one_time_vo) && b_one_time_vo)
-	{
-		piecestub.b_one_time_vo = b_one_time_vo;
-	}
-	if(isDefined(client_field_value))
-	{
-		if(isDefined(is_shared) && is_shared)
-		{
-			piecestub.client_field_id = client_field_value;
-		}
-	}
-	else
-	{
-		piecestub.client_field_state = client_field_value;
-	}
-	return piecestub;
-}
-
-
-fullgame_robot_cycling()
-{
-	level.robot_start_time = GetTime();
-	three_robot_round = 0;
-	last_robot = -1;
-	level thread maps\mp\zm_tomb_giant_robot::giant_robot_intro_walk(1);
-	level waittill("giant_robot_intro_complete");
-
-	/**
-	if(level.delay_robot)
-	{
-		flag_wait("start_robots");
-	}
-	**/
-
-
-	while(true)
-	{
-		level.robot_cycle++;
-		random_number = -1;
-
-		if( !(level.round_number % 4) && three_robot_round != level.round_number)
-		{
-			flag_set("three_robot_round");
-		}
-
-		if ( flag( "ee_all_staffs_placed" ) && !flag( "ee_mech_zombie_hole_opened" ) )
-		{
-            flag_set( "three_robot_round" );
-		}
-
-		if(level.robot_cycle <= level.custom_cycles)
-		{
-			setting = "cycle_" + level.robot_cycle;
-			dvar_val = get_cfg_int(setting);
-			if(dvar_val) random_number = dvar_val - 1;
-		}
-
-		if(flag("three_robot_round") && flag("ee_all_staffs_upgraded") && !flag("ee_mech_zombie_hole_opened"))
-		{
-			rain_robot = get_cfg_int("rain_robot");
-			if(rain_robot) random_number = rain_robot - 1;
-		}
-
-		if(flag("three_robot_round"))
-		{
-			level.zombie_ai_limit = 22;
-			if(random_number < 0)
-			{
-				random_number = randomint(3);
-			}
-			fullgame_menu_robot_cycle_string(1, 3);
-			if(random_number == 2)
-			{
-				level thread fullgame_giant_robot_start_walk(2);
-			}
-			else
-			{
-				level thread fullgame_giant_robot_start_walk(2, 0);
-			}
-			wait 5;
-			if(random_number == 0)
-			{
-				level thread fullgame_giant_robot_start_walk(0);
-			}
-			else
-			{
-				level thread fullgame_giant_robot_start_walk(0, 0);
-			}
-			wait 5;
-			if(random_number == 1)
-			{
-				level thread fullgame_giant_robot_start_walk(1);
-			}
-			else
-			{
-				level thread fullgame_giant_robot_start_walk(1, 0);
-			}
-			level waittill("giant_robot_walk_cycle_complete");
-			level waittill("giant_robot_walk_cycle_complete");
-			level waittill("giant_robot_walk_cycle_complete");
-			fullgame_menu_robot_cycle_string(0, 3);
-			wait 5;
-			level.zombie_ai_limit = 24;
-			three_robot_round = level.round_number;
-			last_robot = -1;
-			flag_clear("three_robot_round");
-		}
-		else
-		{
-			if(flag("activate_zone_nml"))
-			{
-				while(random_number == last_robot || random_number < 0) random_number = randomint(2);
-			}
-			else
-			{
-				if(random_number < 0 || random_number > 1 ) random_number = randomint(2);
-			}
-
-			last_robot = random_number;
-			fullgame_menu_robot_cycle_string(1, random_number);
-			level thread fullgame_giant_robot_start_walk(random_number);
-			level waittill("giant_robot_walk_cycle_complete");
-			fullgame_menu_robot_cycle_string(0, random_number);
-			wait 5;
-		}
-	}
-}
-
-
-#using_animtree("zm_tomb_giant_robot_hatch");
-fullgame_giant_robot_start_walk(n_robot_id, b_has_hatch)
-{
-	if(!isDefined(b_has_hatch))
-	{
-		b_has_hatch = 1;
-	}
-	ai = getent("giant_robot_walker_" + n_robot_id, "targetname");
-	level.gr_foot_hatch_closed[n_robot_id] = 1;
-	ai.b_has_hatch = b_has_hatch;
-	ai ent_flag_clear("kill_trigger_active");
-	ai ent_flag_clear("robot_head_entered");
-	if(isDefined(ai.b_has_hatch) && ai.b_has_hatch)
-	{
-		m_sole = getent("target_sole_" + n_robot_id, "targetname");
-	}
-	if(isDefined(m_sole) && isDefined(ai.b_has_hatch) && ai.b_has_hatch)
-	{
-		m_sole setcandamage(1);
-		m_sole.health = 99999;
-		m_sole useanimtree( #animtree );
-		m_sole unlink();
-	}
-	wait 10;
-	if(isDefined(m_sole))
-	{
-		foot = cointoss();  // Default: random (0=left, 1=right)
-
-		// Check cycle-specific setting
-		if(level.robot_cycle <= level.custom_cycles)
-		{
-			setting = "foot_" + level.robot_cycle;
-			ft = get_cfg_int(setting);
-			if(ft == 0 || ft == 1) foot = ft;
-		}
-		if(flag("ee_all_staffs_crafted"))
-		{
-			ft = get_cfg_int("rain_foot");
-			if(ft == 0 || ft == 1) foot = ft;
-		}
-		if(foot)
-		{
-			ai.hatch_foot = "right";
-		}
-		else
-		{
-			ai.hatch_foot = "left";
-		}
-		if(ai.hatch_foot == "left")
-		{
-			n_sole_origin = ai gettagorigin("TAG_ATTACH_HATCH_LE");
-			v_sole_angles = ai gettagangles("TAG_ATTACH_HATCH_LE");
-			ai.hatch_foot = "left";
-			str_sole_tag = "TAG_ATTACH_HATCH_LE";
-			ai attach("veh_t6_dlc_zm_robot_foot_hatch", "TAG_ATTACH_HATCH_RI");
-		}
-		else if(ai.hatch_foot == "right")
-		{
-			n_sole_origin = ai gettagorigin("TAG_ATTACH_HATCH_RI");
-			v_sole_angles = ai gettagangles("TAG_ATTACH_HATCH_RI");
-			ai.hatch_foot = "right";
-			str_sole_tag = "TAG_ATTACH_HATCH_RI";
-			ai attach("veh_t6_dlc_zm_robot_foot_hatch", "TAG_ATTACH_HATCH_LE");
-		}
-		m_sole.origin = n_sole_origin;
-		m_sole.angles = v_sole_angles;
-		wait 0.1;
-		m_sole linkto(ai, str_sole_tag,  (0, 0, 0));
-		m_sole show();
-		ai attach("veh_t6_dlc_zm_robot_foot_hatch_lights", str_sole_tag);
-	}
-	if(isDefined(ai.b_has_hatch) && !ai.b_has_hatch)
-	{
-		ai attach("veh_t6_dlc_zm_robot_foot_hatch", "TAG_ATTACH_HATCH_RI");
-		ai attach("veh_t6_dlc_zm_robot_foot_hatch", "TAG_ATTACH_HATCH_LE");
-	}
-	wait 0.05;
-	ai thread maps\mp\zm_tomb_giant_robot::giant_robot_think(ai.trig_stomp_kill_right, ai.trig_stomp_kill_left, ai.clip_foot_right, ai.clip_foot_left, m_sole, n_robot_id);
-}
-
-fullgame_recapture_round_tracker()
-{
-	level.n_next_recapture_round = 10;
-	level.n_templar_rounds = 0;
-	while(true)
-	{
-		level waittill("between_round_over");
-		if(level.round_number >= level.n_next_recapture_round && !flag("zone_capture_in_progress") && maps\mp\zm_tomb_capture_zones::get_captured_zone_count() >= maps\mp\zm_tomb_capture_zones::get_player_controlled_zone_count_for_recapture())
-		{
-			level.n_templar_rounds++;
-			temp_round = 0;
-			if(int_in_range(level.n_templar_rounds, 1, 2))
-			{
-				set = level.n_templar_rounds + 1;
-				setting = "temps_" + set + "_round";
-				temp_round = get_cfg_int(setting);
-			}
-			if(int_in_range(temp_round, 3, 5))
-			{
-				level.n_next_recapture_round = level.round_number + temp_round;
-			}
-			else
-			{
-				level.n_next_recapture_round = level.round_number + randomintrange(3, 6);
-			}
-			level thread maps\mp\zm_tomb_capture_zones::recapture_round_start();
-		}
-	}
-}
-
 fullgame_get_recapture_zone(s_last_recapture_zone)
 {
 	a_s_player_zones = [];
@@ -1421,20 +880,25 @@ fullgame_chamber_discs_randomize()
 	if(!isDefined(scramble))
 		scramble = 0;
 	discs = getentarray("crypt_puzzle_disc", "script_noteworthy");
+	//MODIFIED: the four dials, as vanilla picks them (the ones with levers); the
+	// main disc may sit anywhere in the array and must keep its position.
+	dials = [];
+	foreach(disc in discs)
+		if(isdefined(disc.target)) dials[dials.size] = disc;
+	//MODIFIED END
 	prev_disc_pos = 0;
-	for( i = 1; i < 5; i++)
+	for( i = 1; i <= dials.size; i++)
 	{
-		if(!isdefined(discs[i].target)) continue;
 		if(scramble)
 		{
 			turn = int(scramble / pow( 10, 4 - i )) % 10;
-			discs[i].position = (prev_disc_pos + turn) % 4;
+			dials[i - 1].position = (prev_disc_pos + turn) % 4;
 		}
 		else
 		{
-			discs[i].position = (prev_disc_pos + randomintrange(1, 3)) % 4;
+			dials[i - 1].position = (prev_disc_pos + randomintrange(1, 3)) % 4;
 		}
-		prev_disc_pos = discs[i].position;
+		prev_disc_pos = dials[i - 1].position;
 	}
 	maps\mp\zm_tomb_quest_crypt::chamber_discs_move_all_to_position(discs);
 }
