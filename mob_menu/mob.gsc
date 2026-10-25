@@ -14,10 +14,10 @@
 // Everything Mob adds to the core menus and HUD (see practice_map in
 // practice_core\basegame.gsc). Ported from the old M-Practice beta V2.1
 // (old-mob-practice), whose settings were dvars that reset on game restart;
-// here they are saved in MPRAC/.
+// here they are saved in M_PRAC/ (older builds used MPRAC/).
 mob_practice_map()
 {
-    map = practice_map("Huth's M-Practice", "Huth's Mob Practice Tool", "MPRAC/", "m_menu_gamemode");
+    map = practice_map("Huth's M-Practice", "Huth's Mob Practice Tool", "M_PRAC/", "m_menu_gamemode");
     map.accent_color = (1, 0.5, 0.25);
     map.initialize = ::mob_initialize;
     map.build_hud = ::mob_build_hud;

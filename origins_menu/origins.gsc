@@ -13,11 +13,12 @@
                               Origins map hooks
 ##############################################################################*/
 // Everything Origins adds to the core menus and HUD (see practice_map in
-// practice_core\basegame.gsc). The cfg folder, keys and mode dvar are the ones
-// O-Practice always used, so saved settings carry over.
+// practice_core\basegame.gsc). Settings are saved in O_PRAC/ since 2026-10-25;
+// older builds keep theirs in OPRAC/, so either can be installed. The keys and
+// mode dvar are the ones O-Practice always used.
 shared_practice_map()
 {
-    map = practice_map("Huth's O-Practice", "Huth's Origins Practice Tool", "OPRAC/", "o_menu_gamemode");
+    map = practice_map("Huth's O-Practice", "Huth's Origins Practice Tool", "O_PRAC/", "o_menu_gamemode");
     map.build_hud = ::shared_build_hud;
     map.build_cheats = ::shared_build_cheats;
     map.base_cfg_defaults = ::shared_base_cfg_defaults;

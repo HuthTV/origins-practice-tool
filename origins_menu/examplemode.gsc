@@ -29,7 +29,7 @@
 // install its replacefuncs here.
 examplemode_initialize()
 {
-    // Saved to OPRAC/examplemode.cfg; the defaults fill in any missing setting.
+    // Saved to O_PRAC/examplemode.cfg; the defaults fill in any missing setting.
     mode_cfg_load("examplemode", examplemode_default_cfg());
 }
 

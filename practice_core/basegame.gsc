@@ -30,7 +30,7 @@ practice_map(menu_title, tool_name, cfg_dir, mode_dvar)
     map = spawnstruct();
     map.menu_title = menu_title;     // Menu header
     map.tool_name = tool_name;       // Start-up message
-    map.cfg_dir = cfg_dir;           // Folder of every cfg file, like "OPRAC/"
+    map.cfg_dir = cfg_dir;           // Folder of every cfg file, like "O_PRAC/"
     map.mode_dvar = mode_dvar;       // Dvar holding the selected mode
     map.accent_color = (0.54, 0.17, 0.89);
     return map;
