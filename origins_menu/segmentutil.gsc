@@ -618,8 +618,8 @@ shared_segment_timer(start_split, clock_start)
 
     level.timer["segment"] = createServerFontString("default", 1.3);
     level.timer["segment"] setpoint("CENTER", "TOP", 0, 0);
-    level.timer["segment"].alpha = 0.9;
     level.timer["segment"].sort = 2000;
+    timer_segment_hud(level.timer["segment"]);
     level thread shared_segment_end();
 
     if(!isdefined(clock_start)) level thread shared_segment_running();
@@ -642,9 +642,11 @@ shared_segment_timer(start_split, clock_start)
             while(level.n_staffs_crafted < 4) wait 0.05;
             shared_segment_split(SPLIT_LIGHTNING);
             // Ending segment is timed from the fire link.
-            level.timer["segment"].alpha = 0;
+            level.timer_segment_paused = true;
+            timer_segment_refresh();
             flag_wait("fire_link_enabled");
-            level.timer["segment"].alpha = 0.9;
+            level.timer_segment_paused = undefined;
+            timer_segment_refresh();
             level.segment_start_time = gettime();
             level.timer["segment"] settimerup(0);
     }
@@ -655,12 +657,17 @@ shared_segment_split(split)
     first = !isdefined(level.segment_running);
     if(first) [[ level.segment_clock_start ]]();
 
-    hud = createServerFontString("default", 1.4);
-    hud.sort = 2000;
-    hud.hidewheninmenu = 0;
-    hud setpoint("TOPLEFT", "TOPLEFT", -63, 75 + level.segment_row * 16);
-    hud setTextUnlimited(level.segment_names[split] + game_time_string());
-    level.segment_row++;
+    // A hidden split (Timer menu) gets no row; see split_shown.
+    if(split_shown(split))
+    {
+        hud = createServerFontString("default", 1.4);
+        hud.sort = 2000;
+        hud.hidewheninmenu = 0;
+        hud setpoint("TOPLEFT", "TOPLEFT", -63, 75 + level.segment_row * 16);
+        hud setTextUnlimited(level.segment_names[split] + game_time_string());
+        timer_main_hud(hud);
+        level.segment_row++;
+    }
     level.segment_next = split + 1;
 
     // The segment timer only times staff to staff.
@@ -679,10 +686,11 @@ shared_segment_running()
     level.segment_running = createServerFontString("default", 1.4);
     level.segment_running.sort = 2000;
     level.segment_running.hidewheninmenu = 0;
+    timer_main_hud(level.segment_running);
     while(true)
     {
         level.segment_running setpoint("TOPLEFT", "TOPLEFT", -63, 75 + level.segment_row * 16);
-        level.segment_running setTextUnlimited(level.segment_names[level.segment_next] + game_time_string());
+        level.segment_running setTextUnlimited(level.segment_names[split_next_shown(level.segment_next)] + game_time_string());
         wait 0.05;
     }
 }

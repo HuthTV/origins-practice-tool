@@ -18,6 +18,9 @@
 mob_practice_map()
 {
     map = practice_map("Huth's M-Practice", "Huth's Mob Practice Tool", "M_PRAC/", "m_menu_gamemode");
+    // Run splits in MOB_SPLIT_* order (mob.gsh); Headphones, the last, always shows.
+    map.split_names = array("dryer", "gondola_1", "plane_1", "gondola_2", "plane_2", "gondola_3", "plane_3", "codes", "headphones");
+    map.split_labels = array("Dryer", "Gondola I", "Plane I", "Gondola II", "Plane II", "Gondola III", "Plane III", "Codes", "Headphones");
     map.accent_color = (1, 0.5, 0.25);
     map.initialize = ::mob_initialize;
     map.build_hud = ::mob_build_hud;

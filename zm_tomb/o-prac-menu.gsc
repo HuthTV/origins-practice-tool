@@ -30,11 +30,11 @@
 register_modes()
 {
 	level.modes = [];
-	register_mode("fullgame",       "Fullgame",        ::fullgame_initialize,       ::fullgame_run,       ::fullgame_build_menu);
-	register_mode("icestart",       "Icestart",        ::icestart_initialize,       ::icestart_run,       ::shared_build_segment_menus);
-	register_mode("windstart",      "Windstart",       ::windstart_initialize,      ::windstart_run,      ::shared_build_segment_menus);
-	register_mode("firestart",      "Firestart",       ::firestart_initialize,      ::firestart_run,      ::shared_build_segment_menus);
-	register_mode("lightningstart", "Lightningstart",  ::lightningstart_initialize, ::lightningstart_run, ::shared_build_segment_menus);
+	mode_timer(register_mode("fullgame",       "Fullgame",        ::fullgame_initialize,       ::fullgame_run,       ::fullgame_build_menu), true, SPLIT_NML);
+	mode_timer(register_mode("icestart",       "Icestart",        ::icestart_initialize,       ::icestart_run,       ::shared_build_segment_menus), true, SPLIT_ICE);
+	mode_timer(register_mode("windstart",      "Windstart",       ::windstart_initialize,      ::windstart_run,      ::shared_build_segment_menus), true, SPLIT_WIND);
+	mode_timer(register_mode("firestart",      "Firestart",       ::firestart_initialize,      ::firestart_run,      ::shared_build_segment_menus), true, SPLIT_FIRE);
+	mode_timer(register_mode("lightningstart", "Lightningstart",  ::lightningstart_initialize, ::lightningstart_run, ::shared_build_segment_menus), true, SPLIT_LIGHTNING);
 	register_mode("panzprac",       "Panzer Practice", ::panzprac_initialize,       ::panzprac_run,       ::panzprac_build_menu);
 	register_mode("genprac",        "Gen Practice",    ::genprac_initialize,        ::genprac_run,        ::genprac_build_menu);
 	register_mode("icecode",        "Ice code",        ::icecode_initialize,        ::icecode_run,        ::icecode_build_menu);

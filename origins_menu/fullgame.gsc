@@ -52,7 +52,7 @@ fullgame_default_cfg()
 	settings_ar = [];
 	settings_ar["turbo_restarts"] = 1;
 	settings_ar["cycle_tracker"] = 1;
-    settings_ar["nml_split"] = 0;
+    settings_ar["split_nml"] = 0; // Timer menu; off starts the splits at Ice.
 	settings_ar["cycle_tracker_ms"] = 0;
 
 	settings_ar["fullgame_first_powerup"] = 0;
@@ -142,7 +142,7 @@ fullgame_run()
 
 	flag_wait("initial_blackscreen_passed");
     level.game_start_time = gettime();
-    level thread shared_segment_timer(int_compare(get_cfg_int("nml_split"), SPLIT_NML, SPLIT_ICE));
+    level thread shared_segment_timer(int_compare(split_shown(SPLIT_NML), SPLIT_NML, SPLIT_ICE));
 	setDvar("timescale", 1);
 	flag_set("menu_active");
 
@@ -330,7 +330,6 @@ fullgame_build_menu(root)
 {
 	settings = add_submenu(root, "mapsettings", level.mode.label + " Settings", level.mode.label);
 		add_cfg_toggle(settings, "Super Fast Restarts", "turbo_restarts"); // Other modes handle setup timescale themselves.
-		add_cfg_toggle(settings, "NML Split", "nml_split", "^2Yes", "^1No");
 
 	self shared_build_robot_menus(root, ::fullgame_all_random_cycles);
 	self shared_build_templar_menu(root);

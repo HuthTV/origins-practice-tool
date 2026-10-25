@@ -38,12 +38,17 @@ practice_split(index, starts_segment)
     first = !isdefined(level.split_running);
     if(first && isdefined(level.split_clock_start)) [[ level.split_clock_start ]]();
 
-    hud = createServerFontString("default", 1.4);
-    hud.sort = 2000;
-    hud.hidewheninmenu = 0;
-    hud setpoint("TOPLEFT", "TOPLEFT", -63, 75 + level.split_row * 16);
-    hud setTextUnlimited(level.split_labels[index] + game_time_string());
-    level.split_row++;
+    // A hidden split (Timer menu) gets no row; see split_shown.
+    if(split_shown(index))
+    {
+        hud = createServerFontString("default", 1.4);
+        hud.sort = 2000;
+        hud.hidewheninmenu = 0;
+        hud setpoint("TOPLEFT", "TOPLEFT", -63, 75 + level.split_row * 16);
+        hud setTextUnlimited(level.split_labels[index] + game_time_string());
+        timer_main_hud(hud);
+        level.split_row++;
+    }
     level.split_next = index + 1;
 
     if(is_true(starts_segment))
@@ -52,8 +57,8 @@ practice_split(index, starts_segment)
         {
             level.split_segment_hud = createServerFontString("default", 1.3);
             level.split_segment_hud setpoint("CENTER", "TOP", 0, 0);
-            level.split_segment_hud.alpha = 0.9;
             level.split_segment_hud.sort = 2000;
+            timer_segment_hud(level.split_segment_hud);
         }
         level.split_segment_start = gettime();
         level.split_segment_hud settimerup(0);
@@ -69,10 +74,11 @@ practice_splits_running()
     level.split_running = createServerFontString("default", 1.4);
     level.split_running.sort = 2000;
     level.split_running.hidewheninmenu = 0;
+    timer_main_hud(level.split_running);
     while(level.split_next < level.split_labels.size)
     {
         level.split_running setpoint("TOPLEFT", "TOPLEFT", -63, 75 + level.split_row * 16);
-        level.split_running setTextUnlimited(level.split_labels[level.split_next] + game_time_string());
+        level.split_running setTextUnlimited(level.split_labels[split_next_shown(level.split_next)] + game_time_string());
         wait 0.05;
     }
     level.split_running destroy();

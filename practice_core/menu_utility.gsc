@@ -75,9 +75,18 @@ cfg_load(file_name, defaults)
 mode_cfg_load(name, defaults)
 {
     level.mode_cfg_str = level.practice_map.cfg_dir + name + ".cfg";
+    if(isDefined(level.mode.timer))
+    {
+        defaults["timer_main"] = 1;
+        if(level.mode.timer.segment) defaults["timer_segment"] = 1;
+        // Every split defaults on unless the mode's defaults say otherwise.
+        for(i = level.mode.timer.first_split; i < level.practice_map.split_names.size - 1; i++)
+            if(!isDefined(defaults[split_setting(i)])) defaults[split_setting(i)] = 1;
+    }
     // Kept for "Restore default settings" (GSC arrays are copied on assignment).
     level.mode_cfg_defaults = defaults;
     level.mode_cfg = cfg_load(level.mode_cfg_str, defaults);
+    splits_snapshot();
 }
 
 // Omit initialize and run to register a placeholder mode. build_menu(root) adds
@@ -93,6 +102,103 @@ register_mode(name, label, initialize, run, build_menu)
     mode.build_menu = build_menu;
     level.modes[level.modes.size] = mode;
     return mode;
+}
+
+/*##############################################################################
+                              Timer settings
+##############################################################################*/
+// A mode with a run timer declares it after register_mode, and gets a Timer menu
+// (build_timer_menu): main timer on/off, segment timer on/off if it has one, and
+// a toggle for each split from the mode's first split on, except the last, which
+// always shows. Everything defaults on unless the mode's defaults say otherwise.
+//
+//     mode_timer(register_mode(...), true, SPLIT_ICE);
+//
+// The map names its splits in run order on its practice_map (split_names for the
+// settings, split_labels for the menu). The map's timer code hands its HUDs to
+// timer_main_hud (split rows and the live row) and timer_segment_hud (the top
+// timer), so those toggles apply at once; split toggles apply on restart.
+mode_timer(mode, has_segment_timer, first_split)
+{
+    mode.timer = spawnstruct();
+    mode.timer.segment = has_segment_timer;
+    mode.timer.first_split = first_split;
+    return mode.timer;
+}
+
+split_setting(index)
+{
+    return "split_" + level.practice_map.split_names[index];
+}
+
+// Read once with the mode cfg, so a changed split shows from the next restart.
+splits_snapshot()
+{
+    level.split_shown = [];
+    if(!isDefined(level.mode.timer)) return;
+    for(i = level.mode.timer.first_split; i < level.practice_map.split_names.size - 1; i++)
+        level.split_shown[i] = get_cfg_int(split_setting(i));
+}
+
+// Whether the timer draws split index. A hidden split is still waited for (the
+// map's waits rely on their order) and still starts the run clock and restarts
+// the segment timer; it just gets no row. The last split, and splits of modes
+// that declared no timer, always show.
+split_shown(index)
+{
+    if(!isDefined(level.split_shown) || !isDefined(level.split_shown[index])) return true;
+    return level.split_shown[index];
+}
+
+// The first shown split from index on (the live row's label).
+split_next_shown(index)
+{
+    while(index < level.practice_map.split_names.size - 1 && !split_shown(index)) index++;
+    return index;
+}
+
+timer_main_hud(hud)
+{
+    if(!isDefined(level.timer_main_huds)) level.timer_main_huds = [];
+    level.timer_main_huds[level.timer_main_huds.size] = hud;
+    hud.alpha = timer_main_alpha();
+}
+
+// A timer drawn by a mode that declared none is always shown.
+timer_main_alpha()
+{
+    if(!isDefined(level.mode.timer)) return 1;
+    return get_cfg_int("timer_main");
+}
+
+timer_segment_hud(hud)
+{
+    level.timer_segment_hud = hud;
+    timer_segment_refresh();
+}
+
+// level.timer_segment_paused: the map hides the top timer between segments.
+timer_segment_refresh()
+{
+    if(!isDefined(level.timer_segment_hud)) return;
+    if((!isDefined(level.mode.timer) || get_cfg_int("timer_segment")) && !is_true(level.timer_segment_paused))
+        level.timer_segment_hud.alpha = 0.9;
+    else
+        level.timer_segment_hud.alpha = 0;
+}
+
+toggle_timer_main()
+{
+    self cfg_toggle_binary("timer_main");
+    if(!isDefined(level.timer_main_huds)) return;
+    foreach(hud in level.timer_main_huds)
+        if(isDefined(hud)) hud.alpha = timer_main_alpha();
+}
+
+toggle_timer_segment()
+{
+    self cfg_toggle_binary("timer_segment");
+    timer_segment_refresh();
 }
 
 mode_is_implemented(mode)

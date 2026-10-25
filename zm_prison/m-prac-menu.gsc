@@ -19,10 +19,10 @@
 register_modes()
 {
 	level.modes = [];
-	register_mode("mobfullgame", "Fullgame",  ::mobfullgame_initialize, ::mobfullgame_run, ::mobfullgame_build_menu);
-	register_mode("plane1",      "Plane I",   ::plane1_initialize,      ::plane1_run,      ::plane1_build_menu);
-	register_mode("plane2",      "Plane II",  ::plane2_initialize,      ::plane2_run,      ::plane2_build_menu);
-	register_mode("plane3",      "Plane III", ::plane3_initialize,      ::plane3_run,      ::plane3_build_menu);
+	mode_timer(register_mode("mobfullgame", "Fullgame",  ::mobfullgame_initialize, ::mobfullgame_run, ::mobfullgame_build_menu), false, MOB_SPLIT_DRYER);
+	mode_timer(register_mode("plane1",      "Plane I",   ::plane1_initialize,      ::plane1_run,      ::plane1_build_menu), false, MOB_SPLIT_PLANE_1);
+	mode_timer(register_mode("plane2",      "Plane II",  ::plane2_initialize,      ::plane2_run,      ::plane2_build_menu), false, MOB_SPLIT_PLANE_2);
+	mode_timer(register_mode("plane3",      "Plane III", ::plane3_initialize,      ::plane3_run,      ::plane3_build_menu), false, MOB_SPLIT_PLANE_3);
 	register_mode("freeroam",    "Freeroam",  ::freeroam_initialize,    ::freeroam_run,    ::freeroam_build_menu);
 }
 

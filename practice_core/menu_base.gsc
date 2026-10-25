@@ -45,6 +45,7 @@ build_menu_tree()
 	if(isDefined(level.mode.build_menu))
 		self [[ level.mode.build_menu ]](root);
 	self add_restore_defaults_option();
+	self build_timer_menu(root);
 	self build_hud_menu(root);
 	self build_cheats_menu(root);
 	self build_general_menu(root);
@@ -91,6 +92,26 @@ restore_mode_defaults()
 	write_config(level.mode_cfg, level.mode_cfg_str);
 	self iprintln(level.mode.label + " settings restored to default");
 	self refresh_menu();
+}
+
+// Modes that declare a timer (mode_timer). Split changes apply on restart.
+build_timer_menu(root)
+{
+	timer = level.mode.timer;
+	if(!isDefined(timer)) return;
+	labels = level.practice_map.split_labels;
+	menu = add_submenu(root, "timer", "Timer");
+		create_option(menu, "Main Timer: " + cfgint_compare("timer_main"), ::toggle_timer_main);
+		if(timer.segment) create_option(menu, "Segment Timer: " + cfgint_compare("timer_segment"), ::toggle_timer_segment);
+		splits = add_submenu(menu, "timer_splits", "Splits (on restart)", "Splits");
+			for(i = timer.first_split; i < labels.size - 1; i++)
+				add_cfg_toggle(splits, labels[i], split_setting(i));
+			create_option(splits, labels[labels.size - 1] + ": ^2always", ::timer_last_split_fixed);
+}
+
+timer_last_split_fixed()
+{
+	self iprintln("The last split always shows");
 }
 
 // Options every mode has. Anything mode specific goes in the modes own menu.
