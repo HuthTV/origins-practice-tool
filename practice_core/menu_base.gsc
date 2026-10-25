@@ -71,11 +71,19 @@ build_modes_menu(root)
 add_restore_defaults_option()
 {
 	if(!isDefined(self.menu.option_text["mapsettings"]) || !isDefined(level.mode_cfg_defaults)) return;
-	label = "Restore default " + level.mode.label + " settings";
+	// Short: a long row runs past the menu's right edge.
 	if(is_true(self.menu.restore_armed))
-		create_option("mapsettings", "^1" + label + "? Select again", ::restore_mode_defaults);
+		create_option("mapsettings", "^1Confirm Restore Defaults Settings", ::restore_mode_defaults);
 	else
-		create_option("mapsettings", label, ::restore_mode_defaults);
+		create_option("mapsettings", "Restore " + level.mode.label + " Defaults Settings", ::restore_mode_defaults);
+}
+
+// Leaving the row (cursor move, back) cancels a pending "Confirm Restore".
+disarm_restore()
+{
+	if(!is_true(self.menu.restore_armed)) return;
+	self.menu.restore_armed = undefined;
+	self refresh_menu();
 }
 
 restore_mode_defaults()
@@ -277,6 +285,7 @@ initialize_menu()
 			if(self actionslotfourbuttonpressed())
 			{
 				// Back: return to the parent menu, or close the menu at the top level.
+				self disarm_restore();
 				parent = self.menu.parent[self.menu.current];
 				if(isDefined(parent))
 					self enter_menu(parent);
@@ -287,6 +296,7 @@ initialize_menu()
 			{
 				// Up and down pressed together cancel out.
 				self.menu.cursor[self.menu.current] += self actionslottwobuttonpressed() - self actionslotonebuttonpressed();
+				self disarm_restore();
 				self update_scrollbar();
 			}
 			else if(self actionslotthreebuttonpressed())
