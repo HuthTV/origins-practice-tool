@@ -316,6 +316,93 @@ basegame_watch_for_drop()
     }
 }
 
+/*##############################################################################
+                              Real-run check timing
+##############################################################################*/
+// Vanilla's periodic checks tick on a fixed rhythm from the map start. Measured
+// with tools\timing_probe.gsc (2026-10-26, map restarts on Origins, Mob and
+// Buried), in run time (the T6 EE Timer's clock, zero when the black screen
+// ends; level.game_start_time):
+//   out of playable area   every 3 s at 2.2 s + 0.15 s x character index
+//   zombie despawn         every 10 s at 3.2 s
+#define PRACTICE_OOPA_PHASE_MS     2200
+#define PRACTICE_OOPA_INDEX_MS      150
+#define PRACTICE_DESPAWN_PHASE_MS  3200
+
+// A mode that starts mid-run (Origins segment starts, Mob plane starts) calls
+// this in its initialize, so those checks behave as in a real run from where it
+// starts:
+//   hold_flag    no checks until it is set (the start's release); undefined: the
+//                black screen
+//   clock_flag   set when the run clock starts at the start's time
+// Between the two the checks keep their normal period; when the clock starts,
+// each one's next tick waits for the real run's rhythm. Without this, vanilla.
+// The mode initializes both flags (flag_init).
+practice_check_phasing(hold_flag, clock_flag)
+{
+    level.practice_phasing = spawnstruct();
+    level.practice_phasing.hold = hold_flag;
+    level.practice_phasing.clock = clock_flag;
+}
+
+// The first check of a phased mode waits here.
+practice_checks_hold()
+{
+    flag_wait("initial_blackscreen_passed");
+    if(isdefined(level.practice_phasing.hold)) flag_wait(level.practice_phasing.hold);
+}
+
+// The wait between two ticks of a check with this period (seconds) that ticks
+// at run time reference_ms in a real run. Before the clock starts: the period,
+// cut short when it starts; then the first tick waits for the real rhythm and
+// the rest the period. Returns whether the ticks are on that rhythm yet.
+practice_phased_wait(aligned, period, reference_ms)
+{
+    if(aligned)
+    {
+        wait period;
+        return true;
+    }
+    clock = level.practice_phasing.clock;
+    if(!flag(clock)) level waittill_any_timeout(period, clock);
+    if(!flag(clock)) return false;
+    wait practice_check_delay(reference_ms, int(period * 1000));
+    return true;
+}
+
+// Seconds from now until a check that ticks at run time reference_ms every
+// period_ms ticks next.
+practice_check_delay(reference_ms, period_ms)
+{
+    delay_ms = (reference_ms - (gettime() - level.game_start_time)) % period_ms;
+    if(delay_ms < 0) delay_ms += period_ms;
+    return delay_ms / 1000.0;
+}
+
+// The wait between out-of-playable-area checks (core monitor, self = player).
+basegame_oopa_wait(aligned)
+{
+    period = maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
+    if(!isdefined(level.practice_phasing))
+    {
+        wait period;
+        return true;
+    }
+    return practice_phased_wait(aligned, period, PRACTICE_OOPA_PHASE_MS + PRACTICE_OOPA_INDEX_MS * self.characterindex);
+}
+
+// The wait between despawn checks, for a map's zombie_tracking_init override.
+// Its first check waits in practice_checks_hold when phased.
+practice_despawn_wait(aligned)
+{
+    if(!isdefined(level.practice_phasing))
+    {
+        wait level.zombie_tracking_wait;
+        return true;
+    }
+    return practice_phased_wait(aligned, level.zombie_tracking_wait, PRACTICE_DESPAWN_PHASE_MS);
+}
+
 // Vanilla player_out_of_playable_area_monitor's condition: outside every life
 // brush, and in a kill brush or outside the enabled playable area.
 basegame_out_of_playable_area()
@@ -377,10 +464,11 @@ basegame_player_out_of_playable_area_monitor()
 	{
 		wait 0.05;
 	}
-	//MODIFIED: a mode may hold the first check instead (level.oopa_first_check, self =
-	// player); segment starts pause it until their run clock starts, then phase it.
-	if(isdefined(level.oopa_first_check)) self [[ level.oopa_first_check ]]();
-	else wait 0.15 * self.characterindex;
+	//MODIFIED: a mode that starts mid-run holds the checks until its release, then
+	// puts them on a real run's timing (practice_check_phasing)
+	aligned = !isdefined(level.practice_phasing);
+	if(aligned) wait 0.15 * self.characterindex;
+	else practice_checks_hold();
 	//MODIFIED END
 	while(true)
 	{
@@ -391,12 +479,12 @@ basegame_player_out_of_playable_area_monitor()
 		//MODIFIED END
 		if(self.sessionstate == "spectator")
 		{
-			wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
+			aligned = self basegame_oopa_wait(aligned); //MODIFIED: real-run timing when phased
 			continue;
 		}
 		if(is_true(level.hostmigration_occured))
 		{
-			wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
+			aligned = self basegame_oopa_wait(aligned); //MODIFIED: real-run timing when phased
 			continue;
 		}
 		//MODIFIED: vanilla's condition, shared with the OOPA Countdown
@@ -429,7 +517,7 @@ basegame_player_out_of_playable_area_monitor()
         else
         {
         }
-		wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
+		aligned = self basegame_oopa_wait(aligned); //MODIFIED: real-run timing when phased
 	}
 }
 

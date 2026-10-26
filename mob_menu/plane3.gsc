@@ -25,6 +25,7 @@
 
 plane3_initialize()
 {
+    mob_plane_install();
     practice_start_time_setup("Plane Time", PLANE3_TIME_FIRST, PLANE3_TIME_LAST, 5, PLANE3_TIME_DEFAULT);
     mode_cfg_load("plane3", plane3_default_cfg());
 }

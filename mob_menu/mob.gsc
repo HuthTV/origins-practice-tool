@@ -1207,6 +1207,16 @@ mob_zombie_tracking_init()
     if ( !isdefined( level.zombie_tracking_wait ) )
         level.zombie_tracking_wait = 10;
 
+    //MODIFIED: plane starts: real-run timing from the Plane Time clock (core
+    // practice_check_phasing); every other mode is vanilla
+    aligned = true;
+    if(isdefined(level.practice_phasing))
+    {
+        practice_checks_hold();
+        aligned = false;
+    }
+    //MODIFIED END
+
     while ( true )
     {
         level.practice_despawned = 0; //MODIFIED: Despawn printer count for this check.
@@ -1214,7 +1224,7 @@ mob_zombie_tracking_init()
 
         if ( !isdefined( zombies ) || isdefined( level.ignore_distance_tracking ) && level.ignore_distance_tracking )
         {
-            wait( level.zombie_tracking_wait );
+            aligned = practice_despawn_wait(aligned); //MODIFIED: real-run timing in plane starts (core)
             continue;
         }
         else
@@ -1228,7 +1238,7 @@ mob_zombie_tracking_init()
             }
         }
 
-        wait( level.zombie_tracking_wait );
+        aligned = practice_despawn_wait(aligned); //MODIFIED: real-run timing in plane starts (core)
     }
 }
 

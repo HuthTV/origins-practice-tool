@@ -4,6 +4,7 @@
 #include maps\mp\zm_tomb_utility;
 #include maps\mp\gametypes_zm\_hud_util;
 
+#include scripts\zm\practice_core\basegame;
 #include scripts\zm\practice_core\menu_base;
 #include scripts\zm\practice_core\menu_utility;
 #include scripts\zm\practice_core\rounds;
@@ -41,11 +42,12 @@ shared_segment_replacefuncs()
     replacefunc( maps\mp\zombies\_zm_craftables::generate_zombie_craftable_piece, ::shared_generate_zombie_craftable_piece );
     replacefunc( maps\mp\zm_tomb_craftables::randomize_craftable_spawns, ::shared_randomize_craftable_spawns );
 
-    // Periodic checks phased to the segment clock. The out-of-playable-area check
-    // is the core monitor (basegame); a second replacefunc here would be replaced
-    // by the core's, so it takes this first-check hook instead.
-    level.oopa_first_check = ::shared_oopa_first_check;
-    replacefunc( maps\mp\zm_tomb_distance_tracking::zombie_tracking_init, ::shared_zombie_tracking_init );
+    // Out-of-playable-area and despawn checks on a real run's timing from the
+    // start's clock (start_robots, set by shared_craft_time_start_clock). Held
+    // starts hold them until release (shared_held_start_install); Icestart, from
+    // the black screen. The out-of-area check is the core monitor (basegame).
+    practice_check_phasing(undefined, "start_robots");
+    replacefunc( maps\mp\zm_tomb_distance_tracking::zombie_tracking_init, ::shared_segment_zombie_tracking_init );
 }
 
 /*##############################################################################
@@ -1588,45 +1590,54 @@ shared_waittill_dug(s_dig_spot)
 	}
 }
 
-// level.oopa_first_check for segment starts (core basegame monitor): no
-// out-of-playable-area check until the run clock starts (start_robots, set by
-// shared_craft_time_start_clock), then the first one on a real run's 3 s rhythm
-// at the picked craft time, plus vanilla's 0.15 s per character index.
-// Measured with tools\timing_probe.gsc (2026-10-26, map restarts on Origins, Mob
-// and Buried): checks at run time 2.2 s + 0.15 s x character, every 3 s (the
-// run clock starts 6.8 s after spawn, where the check starts).
-shared_oopa_first_check()
-{
-	c_wait = 0.15 * self.characterindex;
-	flag_wait("start_robots");
-	wait shared_monitor_delay(782200, 3000);
-	wait c_wait;
-}
-
-shared_zombie_tracking_init()
+// OVERRIDE: maps\mp\zm_tomb_distance_tracking::zombie_tracking_init, segment
+// starts only (Full Game and the other modes run vanilla). Vanilla Origins
+// despawning (zombie_tracking_dist 1520, zombie_tracking_high 1000, the tunnel
+// stairs) on a real run's timing; the changes are marked //MODIFIED.
+shared_segment_zombie_tracking_init()
 {
     level.zombie_respawned_health = [];
 
+    //MODIFIED: vanilla Origins values (zm_tomb_distance_tracking); this copy had the
+    // generic 1500 / 600 and no tunnel marking
     if ( !isdefined( level.zombie_tracking_dist ) )
-        level.zombie_tracking_dist = 1500;
+        level.zombie_tracking_dist = 1520;
 
     if ( !isdefined( level.zombie_tracking_high ) )
-        level.zombie_tracking_high = 600;
+        level.zombie_tracking_high = 1000;
+    //MODIFIED END
 
     if ( !isdefined( level.zombie_tracking_wait ) )
         level.zombie_tracking_wait = 10;
 
-	flag_wait("start_robots");
-    w_time = shared_monitor_delay(783200, int(level.zombie_tracking_wait * 1000)); //MODIFIED: line up with the picked craft time
-	wait w_time;
+    //MODIFIED: real-run timing from the start's clock (core practice_check_phasing)
+    practice_checks_hold();
+    aligned = false;
+    //MODIFIED END
 
     while ( true )
     {
+        //MODIFIED: vanilla Origins marks players on the staff tunnel stairs, where
+        // delete_zombie_noone_looking counts zombies as close from 1.5x as far
+        a_players = get_players();
+
+        foreach ( player in a_players )
+        {
+            if ( player maps\mp\zombies\_zm_zonemgr::player_in_zone( "zone_air_stairs" ) || player maps\mp\zombies\_zm_zonemgr::player_in_zone( "zone_bolt_stairs" ) || player maps\mp\zombies\_zm_zonemgr::player_in_zone( "zone_fire_stairs" ) || player maps\mp\zombies\_zm_zonemgr::player_in_zone( "zone_ice_stairs" ) )
+            {
+                player.b_in_tunnels = 1;
+                continue;
+            }
+
+            player.b_in_tunnels = 0;
+        }
+        //MODIFIED END
+
         zombies = get_round_enemy_array();
 
         if ( !isdefined( zombies ) || isdefined( level.ignore_distance_tracking ) && level.ignore_distance_tracking )
         {
-            wait( level.zombie_tracking_wait );
+            aligned = practice_despawn_wait(aligned); //MODIFIED: real-run timing (core)
             continue;
         }
         else
@@ -1639,7 +1650,7 @@ shared_zombie_tracking_init()
 
         }
 
-        wait( level.zombie_tracking_wait );
+        aligned = practice_despawn_wait(aligned); //MODIFIED: real-run timing (core)
     }
 }
 
@@ -2274,14 +2285,6 @@ shared_robot_projected_cycle_string(cycle, state, time_ms, robot)
     if(isDefined(level.cycle_display)) level.cycle_display setTextUnlimited(level.cycle_string);
 }
 
-shared_monitor_delay(reference_ms, period_ms)
-{
-    elapsed_ms = gettime() - level.game_start_time;
-    delay_ms = (reference_ms - elapsed_ms) % period_ms;
-    if(delay_ms < 0) delay_ms += period_ms;
-    return delay_ms / 1000.0;
-}
-
 shared_starting_weapons()
 {
     // Called before the player spawns, and vanilla's spawn loadout would replace
@@ -2316,8 +2319,6 @@ shared_enable_chamber_exit(staff_index)
     if(!isdefined(entrance.exit_enabled) || !entrance.exit_enabled)
     {
         entrance.exit_enabled = 1;
-// Seconds from now until a periodic check that ticks at run time reference_ms
-// every period_ms would tick next (run time: level.game_start_time).
         level thread maps\mp\zm_tomb_teleporter::run_chamber_exit(staff_index);
     }
 }
@@ -2469,6 +2470,7 @@ shared_held_start_install()
     level.shared_schedule_hold = "segment_ready"; // Panzers and Templars wait for release.
     flag_init("segment_ready"); // Set when the player is released.
     flag_clear("segment_ready");
+    practice_check_phasing("segment_ready", "start_robots"); // Checks wait for release too.
     flag_init("segment_round_ready");
     flag_clear("segment_round_ready");
     flag_init("segment_setup_done");

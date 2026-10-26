@@ -172,6 +172,8 @@ practice_start_time_next_preset()
 practice_start_time_start_clock()
 {
     level.game_start_time = getTime() - practice_start_time_seconds() * 1000;
+    // Phased checks (practice_check_phasing) move onto the real run's timing.
+    if(isdefined(level.practice_phasing)) flag_set(level.practice_phasing.clock);
 }
 
 // "13:20" -> 800

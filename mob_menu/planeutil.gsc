@@ -2,6 +2,7 @@
 #include common_scripts\utility;
 #include maps\mp\zombies\_zm_utility;
 
+#include scripts\zm\practice_core\basegame;
 #include scripts\zm\practice_core\menu_base;
 #include scripts\zm\practice_core\menu_utility;
 #include scripts\zm\practice_core\rounds;
@@ -75,6 +76,16 @@ mob_plane_default_cfg(settings_ar, start_round, start_zombies)
     settings_ar["perk_deadshot"] = 0;
     settings_ar = practice_start_time_defaults(settings_ar); // Plane Time
     return settings_ar;
+}
+
+// Load-time part of every plane segment (the mode's initialize). Out-of-area and
+// despawn checks wait for the setup to end (plane_released), then follow a real
+// run's timing from the Plane Time clock (core practice_check_phasing).
+mob_plane_install()
+{
+    flag_init("plane_released");
+    flag_init("practice_clock_started");
+    practice_check_phasing("plane_released", "practice_clock_started");
 }
 
 // Perks chosen in the mode's settings (keys from mob_plane_default_cfg).
@@ -193,6 +204,7 @@ mob_plane_setup(segment)
 
     setdvar("timescale", 1);
     setdvar("g_speed", 190);
+    flag_set("plane_released"); // Phased checks start (mob_plane_install).
     if(isdefined(segment.on_start)) self [[ segment.on_start ]]();
     if(!was_demigod) self toggle_demigod();
     iprintlnbold("^3Segment started");
