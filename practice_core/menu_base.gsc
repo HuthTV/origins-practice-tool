@@ -140,6 +140,9 @@ build_hud_menu(root)
 		add_cfg_toggle(hud, "Zombies Remaining", "hud_remaning");
 		add_cfg_choice(hud, "Point based", "hud_points", array("^1disabled", "^3relative", "^3absolute"));
 		add_cfg_toggle(hud, "Health Bar", "hud_health");
+		oopa = array("^1off", "^2on");
+		if(isDefined(level.practice_map.oopa_hud_spot_label)) oopa[2] = "^3" + level.practice_map.oopa_hud_spot_label;
+		add_cfg_choice(hud, "OOPA Countdown", "hud_oopa", oopa);
 		add_cfg_toggle(hud, "Current Zone", "hud_zone");
 	if(isDefined(level.practice_map.build_hud))
 		self [[ level.practice_map.build_hud ]](hud);

@@ -41,8 +41,10 @@ shared_segment_replacefuncs()
     replacefunc( maps\mp\zombies\_zm_craftables::generate_zombie_craftable_piece, ::shared_generate_zombie_craftable_piece );
     replacefunc( maps\mp\zm_tomb_craftables::randomize_craftable_spawns, ::shared_randomize_craftable_spawns );
 
-    // Periodic checks phased to the segment clock
-    replacefunc( maps\mp\zombies\_zm::player_out_of_playable_area_monitor, ::shared_player_out_of_playable_area_monitor );
+    // Periodic checks phased to the segment clock. The out-of-playable-area check
+    // is the core monitor (basegame); a second replacefunc here would be replaced
+    // by the core's, so it takes this first-check hook instead.
+    level.oopa_first_check = ::shared_oopa_first_check;
     replacefunc( maps\mp\zm_tomb_distance_tracking::zombie_tracking_init, ::shared_zombie_tracking_init );
 }
 
@@ -1586,64 +1588,19 @@ shared_waittill_dug(s_dig_spot)
 	}
 }
 
-shared_player_out_of_playable_area_monitor()
+// level.oopa_first_check for segment starts (core basegame monitor): no
+// out-of-playable-area check until the run clock starts (start_robots, set by
+// shared_craft_time_start_clock), then the first one on a real run's 3 s rhythm
+// at the picked craft time, plus vanilla's 0.15 s per character index.
+// Measured with tools\timing_probe.gsc (2026-10-26, map restarts on Origins, Mob
+// and Buried): checks at run time 2.2 s + 0.15 s x character, every 3 s (the
+// run clock starts 6.8 s after spawn, where the check starts).
+shared_oopa_first_check()
 {
-	self notify("stop_player_out_of_playable_area_monitor");
-	self endon("stop_player_out_of_playable_area_monitor");
-	self endon("disconnect");
-	level endon("end_game");
-	while(!isdefined(self.characterindex))
-	{
-		wait 0.05;
-	}
-	c_wait = 0.15 * self.characterindex + 0.2;
+	c_wait = 0.15 * self.characterindex;
 	flag_wait("start_robots");
-    w_time = shared_monitor_delay(780000, 3000); //MODIFIED: line up with the picked craft time
-	wait w_time;
+	wait shared_monitor_delay(782200, 3000);
 	wait c_wait;
-	while(true)
-	{
-		if(get_cfg_int("hud_r2l") && !flag("activate_zone_bunker_6_tank")) self.practice_oopa_tick = gettime();
-		if(self.sessionstate == "spectator")
-		{
-			wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
-			continue;
-		}
-		if(is_true(level.hostmigration_occured))
-		{
-			wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
-			continue;
-		}
-		if(!self maps\mp\zombies\_zm::in_life_brush() && self maps\mp\zombies\_zm::in_kill_brush() || !self maps\mp\zombies\_zm::in_enabled_playable_area())
-		{
-			if(!isdefined(level.player_out_of_playable_area_monitor_callback) || self [[level.player_out_of_playable_area_monitor_callback]]())
-			{
-				self maps\mp\zombies\_zm_stats::increment_map_cheat_stat("cheat_out_of_playable");
-				self maps\mp\zombies\_zm_stats::increment_client_stat("cheat_out_of_playable", 0);
-				self maps\mp\zombies\_zm_stats::increment_client_stat("cheat_total", 0);
-				if(get_cfg_int("oopa") == 1) self playlocalsound(level.zmb_laugh_alias);
-				wait 0.5;
-                if(get_cfg_int("oopa"))
-                {
-                    if(get_players().size == 1 && flag("solo_game") && (isdefined(self.waiting_to_revive) && self.waiting_to_revive))
-                    {
-                        level notify("end_game");
-                    }
-                    else
-                    {
-                        self disableinvulnerability();
-                        self.lives = 0;
-                        self dodamage(self.health + 1000, self.origin);
-                        self.bleedout_time = 0;
-                    }
-                }
-			}
-		}
-        else
-        {
-        }
-		wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
-	}
 }
 
 shared_zombie_tracking_init()
@@ -2319,7 +2276,7 @@ shared_robot_projected_cycle_string(cycle, state, time_ms, robot)
 
 shared_monitor_delay(reference_ms, period_ms)
 {
-    elapsed_ms = int(level.segment_craft_seconds * 1000);
+    elapsed_ms = gettime() - level.game_start_time;
     delay_ms = (reference_ms - elapsed_ms) % period_ms;
     if(delay_ms < 0) delay_ms += period_ms;
     return delay_ms / 1000.0;
@@ -2359,6 +2316,8 @@ shared_enable_chamber_exit(staff_index)
     if(!isdefined(entrance.exit_enabled) || !entrance.exit_enabled)
     {
         entrance.exit_enabled = 1;
+// Seconds from now until a periodic check that ticks at run time reference_ms
+// every period_ms would tick next (run time: level.game_start_time).
         level thread maps\mp\zm_tomb_teleporter::run_chamber_exit(staff_index);
     }
 }

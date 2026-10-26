@@ -23,6 +23,8 @@
 //   open_doors()               replaces the core Open Doors
 //   open_doors_extra()         extra step inside the core Open Doors (self = player)
 //   oopa_tick()                each out-of-playable-area check (self = player)
+//   oopa_hud_spot()            where the OOPA Countdown shows, e.g. a trick (self = player)
+//   oopa_hud_spot_label        name of its "only" choice in the HUD menu, like "R2L only"
 //   hud_left_shift()           x offset for the left HUD (zone, HP) (self = player)
 //   run()                      map-wide threads, started with the core HUDs
 practice_map(menu_title, tool_name, cfg_dir, mode_dvar)
@@ -127,6 +129,7 @@ basegame_run()
     level thread basegame_unitrigger_hud_monitor();
     level thread basegame_optional_hud_monitor();
     level thread basegame_zone_hud_monitor();
+    level thread basegame_oopa_hud_monitor();
     if(isDefined(level.practice_map.run)) level thread [[ level.practice_map.run ]]();
     if(get_cfg_int("hud_points")) level thread basegame_points_hud();
 }
@@ -157,6 +160,7 @@ basegame_default_cfg()
     settings_ar["hud_zone"] = 0;
     settings_ar["hud_speed"] = 0;
     settings_ar["hud_unitrigger"] = 0;
+    settings_ar["hud_oopa"] = 1; // OOPA Countdown: 0 off, 1 on, 2 the map's spot only (Origins: R2L)
     settings_ar["show_identifier"] = 0; // Plutonium's session identifier and script hashes.
 
     if(isDefined(level.practice_map.base_cfg_defaults))
@@ -312,6 +316,57 @@ basegame_watch_for_drop()
     }
 }
 
+// Vanilla player_out_of_playable_area_monitor's condition: outside every life
+// brush, and in a kill brush or outside the enabled playable area.
+basegame_out_of_playable_area()
+{
+	return !self maps\mp\zombies\_zm::in_life_brush() && (self maps\mp\zombies\_zm::in_kill_brush() || !self maps\mp\zombies\_zm::in_enabled_playable_area());
+}
+
+// OOPA Countdown (hud_oopa): a bar filling from each out-of-playable-area check
+// to the next, framed red once a check caught the player out. 1 on: while the
+// player is out of the playable area, or at the map's spot. 2: only at the
+// map's spot (practice_map oopa_hud_spot, self = player; Origins: the R2L trick
+// until trig_zone_bunker_6 fires). No bar before the first check (segment
+// starts hold it until their clock starts).
+basegame_oopa_hud_monitor()
+{
+	level endon("end_game");
+	while(true)
+	{
+		setting = get_cfg_int("hud_oopa");
+		foreach(player in get_players())
+		{
+			show = false;
+			if(setting && isdefined(player.practice_oopa_tick))
+			{
+				spot = isdefined(level.practice_map.oopa_hud_spot) && player [[ level.practice_map.oopa_hud_spot ]]();
+				if(setting == 2) show = spot;
+				else show = spot || player basegame_out_of_playable_area();
+			}
+			if(show)
+			{
+				if(!isdefined(player.practice_oopa_bar))
+				{
+					player.practice_oopa_bar = player createbar((1, 1, 1), 24, 2);
+					player.practice_oopa_bar setpoint("CENTER", "CENTER", 0, 12);
+				}
+				elapsed = (gettime() - player.practice_oopa_tick) / (maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time() * 1000);
+				if(elapsed > 1) elapsed = 1;
+				player.practice_oopa_bar updatebar(elapsed);
+				if(is_true(player.practice_oopa_failing)) player.practice_oopa_bar.color = (1, 0, 0);
+				else player.practice_oopa_bar.color = (0, 0, 0);
+			}
+			else if(isdefined(player.practice_oopa_bar))
+			{
+				player.practice_oopa_bar destroyelem();
+				player.practice_oopa_bar = undefined;
+			}
+		}
+		wait 0.05;
+	}
+}
+
 basegame_player_out_of_playable_area_monitor()
 {
 	self notify("stop_player_out_of_playable_area_monitor");
@@ -322,10 +377,18 @@ basegame_player_out_of_playable_area_monitor()
 	{
 		wait 0.05;
 	}
-	wait 0.15 * self.characterindex;
+	//MODIFIED: a mode may hold the first check instead (level.oopa_first_check, self =
+	// player); segment starts pause it until their run clock starts, then phase it.
+	if(isdefined(level.oopa_first_check)) self [[ level.oopa_first_check ]]();
+	else wait 0.15 * self.characterindex;
+	//MODIFIED END
 	while(true)
 	{
+		//MODIFIED: the OOPA Countdown times from each check and shows its result
+		self.practice_oopa_tick = gettime();
+		self.practice_oopa_failing = self basegame_out_of_playable_area();
 		if(isdefined(level.practice_map.oopa_tick)) self [[ level.practice_map.oopa_tick ]]();
+		//MODIFIED END
 		if(self.sessionstate == "spectator")
 		{
 			wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
@@ -336,7 +399,9 @@ basegame_player_out_of_playable_area_monitor()
 			wait maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time();
 			continue;
 		}
-		if(!self maps\mp\zombies\_zm::in_life_brush() && self maps\mp\zombies\_zm::in_kill_brush() || !self maps\mp\zombies\_zm::in_enabled_playable_area())
+		//MODIFIED: vanilla's condition, shared with the OOPA Countdown
+		if(self basegame_out_of_playable_area())
+		//MODIFIED END
 		{
 			if(!isdefined(level.player_out_of_playable_area_monitor_callback) || self [[level.player_out_of_playable_area_monitor_callback]]())
 			{

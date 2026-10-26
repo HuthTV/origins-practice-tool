@@ -27,15 +27,33 @@ shared_practice_map()
     map.base_cfg_defaults = ::shared_base_cfg_defaults;
     map.say_command = ::shared_say_command;
     map.open_doors_extra = ::shared_open_tank_zones;
-    map.oopa_tick = ::shared_oopa_tick;
     map.hud_left_shift = ::shared_tablet_shift;
-    map.run = ::shared_r2l_hud_monitor;
+    map.oopa_hud_spot = ::shared_r2l_hud_spot;
+    map.oopa_hud_spot_label = "R2L only";
     return map;
+}
+
+// OOPA Countdown spot (core basegame_oopa_hud_monitor): the R2L trick, until
+// trig_zone_bunker_6 fires (vanilla sets activate_zone_bunker_6_tank, then
+// deletes the trigger). In zone_bunker_6, or out of bounds in zone_bunker_tank_b.
+shared_r2l_hud_spot()
+{
+    if(flag("activate_zone_bunker_6_tank")) return false;
+    zone = self get_current_zone();
+    if(!isdefined(zone)) return false;
+    switch(zone)
+    {
+        case "zone_bunker_6":
+            return true;
+        case "zone_bunker_tank_b":
+            return self basegame_out_of_playable_area();
+        default:
+            return false;
+    }
 }
 
 shared_build_hud(hud)
 {
-	add_cfg_toggle(hud, "R2L Countdown", "hud_r2l");
 	if(mode_has_robot_cycles())
 	{
 		add_cfg_toggle(hud, "Cycle display ms", "cycle_tracker_ms");
@@ -55,7 +73,7 @@ shared_build_cheats(cheats)
 
 shared_base_cfg_defaults(settings_ar)
 {
-    settings_ar["hud_r2l"] = 0;
+    settings_ar["hud_oopa"] = 2; // OOPA Countdown: R2L only by default (user, 2026-10-26).
     return settings_ar;
 }
 
@@ -85,12 +103,6 @@ shared_open_tank_zones()
     }
 }
 
-// The R2L countdown times from each out-of-playable-area check.
-shared_oopa_tick()
-{
-    if(get_cfg_int("hud_r2l") && !flag("activate_zone_bunker_6_tank")) self.practice_oopa_tick = gettime();
-}
-
 // The slot left of the HP shows the G-Strike tablet while it is carried
 // (vanilla zm_tomb_ee_side: stage 1 muddy, stage 4 clean).
 shared_carrying_tablet()
@@ -105,50 +117,6 @@ shared_tablet_shift()
 {
     if(self shared_carrying_tablet()) return 0;
     return -24;
-}
-
-shared_r2l_hud_monitor()
-{
-    level endon("end_game");
-    flag_wait("zones_initialized");
-    while(!flag("activate_zone_bunker_6_tank"))
-    {
-        foreach(player in get_players())
-        {
-            show = false;
-            if(get_cfg_int("hud_r2l") && isdefined(player.practice_oopa_tick))
-            {
-                zone = player get_current_zone();
-                show = zone == "zone_bunker_6";
-                if(zone == "zone_bunker_tank_b")
-                    show = !player maps\mp\zombies\_zm::in_life_brush() && (player maps\mp\zombies\_zm::in_kill_brush() || !player maps\mp\zombies\_zm::in_enabled_playable_area());
-            }
-            if(show)
-            {
-                if(!isdefined(player.practice_r2l_bar))
-                {
-                    player.practice_r2l_bar = player createbar((1, 1, 1), 24, 2);
-                    player.practice_r2l_bar setpoint("CENTER", "CENTER", 0, 12);
-                }
-                elapsed = (gettime() - player.practice_oopa_tick) / (maps\mp\zombies\_zm::get_player_out_of_playable_area_monitor_wait_time() * 1000);
-                if(elapsed > 1) elapsed = 1;
-                player.practice_r2l_bar updatebar(elapsed);
-            }
-            else if(isdefined(player.practice_r2l_bar))
-            {
-                player.practice_r2l_bar destroyelem();
-                player.practice_r2l_bar = undefined;
-            }
-        }
-        wait 0.05;
-    }
-    // Vanilla sets this flag when trig_zone_bunker_6 fires, then deletes it.
-    foreach(player in get_players())
-    {
-        if(isdefined(player.practice_r2l_bar)) player.practice_r2l_bar destroyelem();
-        player.practice_r2l_bar = undefined;
-        player.practice_oopa_tick = undefined;
-    }
 }
 
 /*##############################################################################
