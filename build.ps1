@@ -7,7 +7,9 @@ through build_single.bat:
                                instead; Plutonium compiles them, so edits only need a
                                map restart.
     build_single.bat -Check    Build into build\ only. Does not touch the game.
-    add -Map origins|mob       Only that map (default: every map).
+    add -Map <name>            Only that map: origins, mob, buried, dierise or tranzit
+                               (default: every map). Skeleton maps (Install = $false
+                               in $Maps) are built and checked, never installed.
     add -Tools                 Also compile every tools\*.gsc (and install it, unless -Check).
 
 Needs gsc-tool (https://github.com/xensik/gsc-tool/releases, tested with
@@ -26,6 +28,8 @@ The sources are laid out like the install:
                     never names map code; maps hand it function pointers.
   - origins_menu\   Origins code and modes; oprac.gsh holds its #defines.
   - mob_menu\       Mob of the Dead code and modes; mob.gsh holds its #defines.
+  - buried_menu\, dierise_menu\, tranzit_menu\   skeletons (Buried, Die Rise,
+                    TranZit): a map descriptor, a .gsh and a bare Freeroam mode.
 A map's entry includes the core and its own folder. Every build checks both forms:
   - Source: every file compiles on its own (from a copy of the install tree in
     build\<map>\source\), and includes each project file whose functions it calls.
@@ -40,7 +44,7 @@ param(
     [switch]$Check,
     [switch]$Source,
     [switch]$Tools,
-    [ValidateSet("origins", "mob")]
+    [ValidateSet("origins", "mob", "buried", "dierise", "tranzit")]
     [string]$Map
 )
 $Deploy = -not $Check
@@ -56,9 +60,14 @@ $ScriptsDir = Join-Path $env:LOCALAPPDATA "Plutonium\storage\t6\scripts\zm"
 $Core       = "practice_core"
 
 # Every map: its entry folder (the game's map name), entry script and code folder.
+# Install = $false marks a skeleton: built and checked like the others, never
+# installed (set it to $true when the map is ready to run in game).
 $Maps = @(
-    [pscustomobject]@{ Name = "origins"; Entry = "zm_tomb";   EntryFile = "o-prac-menu.gsc"; Folder = "origins_menu" },
-    [pscustomobject]@{ Name = "mob";     Entry = "zm_prison"; EntryFile = "m-prac-menu.gsc"; Folder = "mob_menu" }
+    [pscustomobject]@{ Name = "origins"; Entry = "zm_tomb";     EntryFile = "o-prac-menu.gsc"; Folder = "origins_menu"; Install = $true },
+    [pscustomobject]@{ Name = "mob";     Entry = "zm_prison";   EntryFile = "m-prac-menu.gsc"; Folder = "mob_menu";     Install = $true },
+    [pscustomobject]@{ Name = "buried";  Entry = "zm_buried";   EntryFile = "b-prac-menu.gsc"; Folder = "buried_menu";  Install = $false },
+    [pscustomobject]@{ Name = "dierise"; Entry = "zm_highrise"; EntryFile = "d-prac-menu.gsc"; Folder = "dierise_menu"; Install = $false },
+    [pscustomobject]@{ Name = "tranzit"; Entry = "zm_transit";  EntryFile = "t-prac-menu.gsc"; Folder = "tranzit_menu"; Install = $false }
 )
 $MapFolders = $Maps | ForEach-Object { $_.Folder }
 
@@ -275,7 +284,10 @@ foreach ($mapInfo in $selected) {
     $compiled = Invoke-GscTool $mapBuild $mapInfo.EntryFile $joinMap
     Write-Host "[$($mapInfo.Name)] Built $compiled"
 
-    if ($Deploy) {
+    if ($Deploy -and -not $mapInfo.Install) {
+        Write-Host "[$($mapInfo.Name)] Skeleton: checked, not installed"
+    }
+    elseif ($Deploy) {
         $entryName = "$($mapInfo.Entry)\$($mapInfo.EntryFile)"
         $entry = Join-Path $ScriptsDir $entryName
         if (Test-Path $entry) {

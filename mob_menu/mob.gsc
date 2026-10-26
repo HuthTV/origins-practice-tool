@@ -32,6 +32,13 @@ mob_practice_map()
     return map;
 }
 
+// The menu runs on classic Mob of the Dead only (zm_prison also hosts Grief on
+// Cellblock).
+mob_map_active()
+{
+    return is_classic();
+}
+
 // Map-wide replacefuncs, for every mode.
 mob_initialize()
 {

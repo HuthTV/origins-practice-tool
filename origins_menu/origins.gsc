@@ -33,6 +33,13 @@ shared_practice_map()
     return map;
 }
 
+// The menu runs on classic Origins only. zm_tomb has no other game mode; the
+// check keeps every map's entry the same shape.
+shared_map_active()
+{
+    return is_classic();
+}
+
 // OOPA Countdown spot (core basegame_oopa_hud_monitor): the R2L trick, until
 // trig_zone_bunker_6 fires (vanilla sets activate_zone_bunker_6_tank, then
 // deletes the trigger). In zone_bunker_6, or out of bounds in zone_bunker_tank_b.

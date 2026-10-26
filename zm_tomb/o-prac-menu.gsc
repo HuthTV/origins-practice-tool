@@ -52,6 +52,7 @@ register_modes()
 
 main()
 {
+	if(!shared_map_active()) return;
 	// Robot and foot names for the menus.
 	level.robot[ROBOT_RANDOM] = "random";
 	level.robot[ROBOT_ODIN] = "odin";
@@ -67,5 +68,6 @@ main()
 
 init()
 {
+	if(!shared_map_active()) return;
 	practice_init();
 }

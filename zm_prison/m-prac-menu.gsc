@@ -28,11 +28,13 @@ register_modes()
 
 main()
 {
+	if(!mob_map_active()) return;
 	register_modes();
 	practice_main(mob_practice_map(), "DEV BUILD");
 }
 
 init()
 {
+	if(!mob_map_active()) return;
 	practice_init();
 }
