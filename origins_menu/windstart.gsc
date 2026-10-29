@@ -4,6 +4,7 @@
 
 #include scripts\zm\practice_core\menu_utility;
 #include scripts\zm\origins_menu\segmentutil;
+#include scripts\zm\origins_menu\puzzlerng;
 #include scripts\zm\origins_menu\staffutil;
 #inline scripts\zm\origins_menu\oprac;
 
@@ -30,6 +31,7 @@ windstart_initialize()
     // Craft time presets: 17:00 to 19:00, every 5 seconds, 18:20 by default.
     // Custom Craft: 16 to 24 minutes (Icestart + 4).
     shared_craft_time_setup("17:00", "19:00", 5, "18:20", 16, 24);
+    puzzle_rng_install();
     mode_cfg_load("windstart", windstart_default_cfg());
     shared_segment_install(windstart_segment());
     shared_held_start_install();
@@ -53,6 +55,7 @@ windstart_segment()
     segment.panzer_spot = WIND_PANZER_SPOT;
     segment.panzer_spot_wave = 2; // Only Panzer 2, and only when it is due on the start round.
     segment.setup = ::windstart_setup;
+
     return segment;
 }
 
@@ -109,5 +112,6 @@ windstart_default_cfg()
     settings_ar["cycle_tracker_ms"] = 0;
     settings_ar["cycle_tracker"] = 1;
 
+    settings_ar = puzzle_rng_defaults(settings_ar);
     return settings_ar;
 }

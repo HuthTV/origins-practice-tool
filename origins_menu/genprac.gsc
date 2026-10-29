@@ -67,6 +67,8 @@ on_player_spawned_gen()
     self thread beacon_tp();
     level waittill("start_of_round");
     level waittill("start_of_round");
+    setDvar("timescale", 1);
+    wait 0.5; // Normal speed for 500 ms before the player is released.
     self freezecontrols( 0 );
 
 

@@ -131,7 +131,8 @@ basegame_run()
     level thread basegame_zone_hud_monitor();
     level thread basegame_oopa_hud_monitor();
     if(isDefined(level.practice_map.run)) level thread [[ level.practice_map.run ]]();
-    if(get_cfg_int("hud_points")) level thread basegame_points_hud();
+    level thread basegame_points_hud_monitor();
+    level thread basegame_active_zones_hud_monitor();
 }
 
 reset_dvars()
@@ -158,8 +159,9 @@ basegame_default_cfg()
     settings_ar["hud_spawned"] = 0;
     settings_ar["hud_health"] = 0;
     settings_ar["hud_zone"] = 0;
-    settings_ar["hud_speed"] = 0;
+    settings_ar["hud_speed"] = 1;
     settings_ar["hud_unitrigger"] = 0;
+    settings_ar["hud_active_zones"] = 0;
     settings_ar["hud_oopa"] = 1; // OOPA Countdown: 0 off, 1 on, 2 the map's spot only (Origins: R2L)
     settings_ar["show_identifier"] = 0; // Plutonium's session identifier and script hashes.
 
@@ -191,34 +193,6 @@ basegame_overrides()
     replacefunc( maps\mp\zombies\_zm_powerups::watch_for_drop, ::basegame_watch_for_drop );
 }
 
-// toggles
-
-
-
-
-toggle_pointbased()
-{
-    setting = "hud_points";
-    status = get_cfg_int(setting);
-
-    switch (status) {
-    case 2:
-        new_status = 0;
-        level.point_based_hud destroy();
-        break;
-    case 0:             //relative
-        level thread basegame_points_hud();
-        new_status = 1;
-        break;
-    case 1:             //absollute
-        new_status = 2;
-        break;
-    }
-    level.base_cfg[setting] = new_status;
-    write_config(level.base_cfg, level.base_cfg_str);
-    self refresh_menu();
-}
-
 //funcs
 
 give_drop( drop )
@@ -229,55 +203,127 @@ give_drop( drop )
 
 //HUD ELEMS
 
-basegame_points_hud()
+// Point based HUD (hud_points: 0 off, 1 relative, 2 absolute). The monitor builds
+// the HUD when the setting is on and destroys it when it is off, so the menu
+// switches it without a restart. level.score_to_drop exists once the vanilla
+// drop watcher has started.
+basegame_points_hud_monitor()
 {
-    self endon( "disconnect" );
-    level.point_based_hud = createServerFontString( "hudsmall", 1.4 );
-    level.point_based_hud.alignx = "left";
-    level.point_based_hud.aligny = "middle";
-    level.point_based_hud.horzalign = "right";
-    level.point_based_hud.vertalign = "bottom";
-    level.point_based_hud.x = -170;
-    level.point_based_hud.y = 8;
-    level.point_based_hud.alpha = 0.8;
-    level.point_based_hud.hidewheninmenu = 0;
-
-    while(isDefined(level.point_based_hud))
+    level endon("end_game");
+    text = "";
+    while(true)
     {
-        players = get_players();
-        new_total_score = 0;
-
-        for ( i = 0; i < players.size; i++ )
+        mode = get_cfg_int("hud_points");
+        if(mode == 0 || !isDefined(level.score_to_drop))
         {
-            if ( isdefined( players[i].score_total ) )
-                new_total_score += players[i].score_total;
+            if(isDefined(level.point_based_hud)) level.point_based_hud destroy();
+            level.point_based_hud = undefined;
+            text = "";
+            wait 0.25;
+            continue;
         }
 
-        mode = get_cfg_int( "hud_points" );
+        if(!isDefined(level.point_based_hud))
+        {
+            level.point_based_hud = createServerFontString("hudsmall", 1.4);
+            level.point_based_hud.alignx = "left";
+            level.point_based_hud.aligny = "middle";
+            level.point_based_hud.horzalign = "right";
+            level.point_based_hud.vertalign = "bottom";
+            level.point_based_hud.x = -170;
+            level.point_based_hud.y = 8;
+            level.point_based_hud.alpha = 0.8;
+            level.point_based_hud.hidewheninmenu = 0;
+            text = "";
+        }
+
+        players = get_players();
+        point_req = int(level.score_to_drop + 0.99);
         if(mode == 1)
         {
-            point_req = int( level.score_to_drop + 0.99 ) - ( players[0].score_total - players[0].score );
+            // This player's points since the last drop.
+            point_req -= players[0].score_total - players[0].score;
             point_cur = players[0].score;
-
-            level.point_based_hud.text = point_cur + "/" + point_req;
-            level.point_based_hud setTextUnlimited( level.point_based_hud.text );
         }
-        else if(mode == 2)
+        else
         {
-            point_req = int( level.score_to_drop + 0.99 );
-            point_cur = new_total_score;
-
-            level.point_based_hud.text = point_cur + "/" + point_req;
-            level.point_based_hud setTextUnlimited( level.point_based_hud.text );
+            point_cur = 0;
+            foreach(player in players)
+                if(isDefined(player.score_total)) point_cur += player.score_total;
         }
 
-        if ( level.zombie_vars["zombie_drop_item"] )
+        new_text = point_cur + "/" + point_req;
+        if(new_text != text)
+        {
+            level.point_based_hud setTextUnlimited(new_text);
+            text = new_text;
+        }
+
+        if(level.zombie_vars["zombie_drop_item"])
             level.point_based_hud.color = (0.54, 0.17, 0.89);
         else
-            level.point_based_hud.color = ( 1, 1, 1 );
+            level.point_based_hud.color = (1, 1, 1);
 
         wait 0.05;
     }
+}
+
+// Active zones HUD (hud_active_zones): every zone the zone manager keeps active,
+// one per line. Built and destroyed by the setting, like the other optional HUDs.
+// setTextUnlimited, as the text keeps changing (settext fills the configstrings).
+basegame_active_zones_hud_monitor()
+{
+    level endon("end_game");
+    hud = undefined;
+    text = "";
+    while(true)
+    {
+        if(!get_cfg_int("hud_active_zones") || !isDefined(level.zones))
+        {
+            if(isDefined(hud)) hud destroy();
+            hud = undefined;
+            text = "";
+        }
+        else
+        {
+            if(!isDefined(hud))
+            {
+                hud = createServerFontString("hudsmall", 1.2);
+                hud.alignx = "left";
+                hud.aligny = "top";
+                hud.horzalign = "left";
+                hud.vertalign = "middle";
+                hud.x = -62;
+                hud.y = -65;
+                hud.hidewheninmenu = 1;
+            }
+            new_text = "Active zones:";
+            zones = maps\mp\zombies\_zm_zonemgr::get_active_zone_names();
+            if(isDefined(zones))
+                foreach(zone in zones)
+                    new_text = new_text + "\n" + basegame_plain_zone_name(zone);
+            if(new_text != text)
+            {
+                hud setTextUnlimited(new_text);
+                text = new_text;
+            }
+        }
+        wait 0.25;
+    }
+}
+
+// "zone_bunker_tank_b" -> "bunker tank b".
+basegame_plain_zone_name(zone)
+{
+    if(zone.size >= 5 && getsubstr(zone, 0, 5) == "zone_")
+        zone = getsubstr(zone, 5, zone.size);
+    name = "";
+    foreach(token in strtok(zone, "_"))
+    {
+        if(name != "") name += " ";
+        name += token;
+    }
+    return name;
 }
 
 

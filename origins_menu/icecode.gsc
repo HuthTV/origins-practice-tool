@@ -29,8 +29,9 @@ icecode_run()
     gaming freezecontrols( 1 );
     gaming setorigin((3048, 4408, -605));
     wait 12.5;
-    gaming freezecontrols( 0 );
     setDvar("timescale", 1);
+    wait 0.5; // Normal speed for 500 ms before the player is released.
+    gaming freezecontrols( 0 );
 }
 
 icecode_build_menu(root)

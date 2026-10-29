@@ -59,7 +59,6 @@ mob_base_cfg_defaults(settings_ar)
     settings_ar["hud_wolves"] = 0;
     settings_ar["hud_mana"] = 0;
     settings_ar["hud_despawns"] = 0;
-    settings_ar["hud_active_zones"] = 0;
     settings_ar["hud_autoscroll"] = 0;   // Dryer and bridge countdowns.
     settings_ar["hud_spawn_probe"] = 0;  // Temporary: afterlife spawn mapping probe.
     settings_ar["force_mantle_spawn"] = 0; // Claim the mantle hole spawn under the plane.
@@ -81,7 +80,6 @@ mob_build_hud(hud)
 	add_cfg_toggle(hud, "Wolf souls", "hud_wolves");
 	add_cfg_toggle(hud, "Afterlife mana", "hud_mana");
 	add_cfg_toggle(hud, "Despawn printer", "hud_despawns");
-	add_cfg_toggle(hud, "Active zones", "hud_active_zones");
 	add_cfg_toggle(hud, "Dryer/bridge timers", "hud_autoscroll");
 	add_cfg_toggle(hud, "Spawn probe (temp)", "hud_spawn_probe");
 }
@@ -124,7 +122,6 @@ mob_run()
 {
     level thread mob_wolves_hud();
     level thread mob_mana_hud();
-    level thread mob_active_zones_hud();
     level thread mob_teleport_return_watcher();
     level thread mob_spawn_probe_hud();
     level thread mob_force_mantle_spawn();
@@ -538,47 +535,6 @@ mob_mana_hud()
     }
 }
 
-// Active zone names, one per line. setTextUnlimited, as the text keeps
-// changing (the old tool's settext filled the configstrings).
-mob_active_zones_hud()
-{
-    level endon("end_game");
-    hud = undefined;
-    text = "";
-    while(true)
-    {
-        if(!get_cfg_int("hud_active_zones"))
-        {
-            if(isdefined(hud)) hud destroy();
-            hud = undefined;
-            text = "";
-        }
-        else
-        {
-            if(!isdefined(hud))
-            {
-                hud = createserverfontstring("hudsmall", 1.2);
-                hud.alignx = "left";
-                hud.aligny = "top";
-                hud.horzalign = "left";
-                hud.vertalign = "middle";
-                hud.x = -62;
-                hud.y = -65;
-                hud.hidewheninmenu = 1;
-            }
-            new_text = "Active zones:";
-            foreach(zone in maps\mp\zombies\_zm_zonemgr::get_active_zone_names())
-                new_text = new_text + "\n" + mob_plain_zone_name(zone);
-            if(new_text != text)
-            {
-                hud setTextUnlimited(new_text);
-                text = new_text;
-            }
-        }
-        wait 0.25;
-    }
-}
-
 /*##############################################################################
                               Afterlife spawn prediction
 ##############################################################################*/
@@ -890,20 +846,6 @@ mob_spawn_probe_hud()
         }
         wait 0.25;
     }
-}
-
-// "zone_cellblock_east" -> "cellblock east"
-mob_plain_zone_name(zone)
-{
-    if(zone.size >= 5 && getsubstr(zone, 0, 5) == "zone_")
-        zone = getsubstr(zone, 5, zone.size);
-    name = "";
-    foreach(token in strtok(zone, "_"))
-    {
-        if(name != "") name += " ";
-        name += token;
-    }
-    return name;
 }
 
 // Timescale 10 from boarding until 30 s after the crash, when the setting is on.

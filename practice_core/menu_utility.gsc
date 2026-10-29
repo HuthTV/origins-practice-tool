@@ -310,30 +310,32 @@ int_compare(value, d_true, d_false)
     }
 }
 
+// The host's setting is the cfg's hud_speed; other players keep theirs in a dvar.
+// Starts or stops the HUD at once.
 cfg_toggle_speedometer()
 {
-    speed_status = undefined;
     if(self isHost())
     {
-        speed_status = cfg_toggle_binary("hud_speed");
+        self cfg_toggle_binary("hud_speed");
+        speed_on = get_cfg_int("hud_speed");
     }
     else
     {
         speed_dvar = self.name + "_speedometer";
-        speed_status = getdvar(speed_dvar);
-        setdvar(speed_dvar, 1 - speed_status);
+        speed_on = 1 - int(getdvar(speed_dvar));
+        setdvar(speed_dvar, speed_on);
     }
-    
-    if(speed_status == 1)
+
+    if(speed_on)
     {
         if(!isDefined(self.speedometer))
             self thread basegame_speedometer();
-        else if(isDefined(self.speedometer))
-        {
-            self notify("kill_speedometer");
-            self.speedometer destroy();
-            self.speedometer = undefined;
-        }
+    }
+    else if(isDefined(self.speedometer))
+    {
+        self notify("kill_speedometer");
+        self.speedometer destroy();
+        self.speedometer = undefined;
     }
     self refresh_menu();
 }

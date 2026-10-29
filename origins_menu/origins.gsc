@@ -71,7 +71,7 @@ shared_build_hud(hud)
 shared_build_cheats(cheats)
 {
 	create_option(cheats, "Get Parts", ::get_all_parts);
-	gems = add_submenu(cheats, "gems", "Gems");
+	gems = add_submenu(cheats, "gems", "Give staff gems");
 		create_option(gems, "Fire Gem", ::give_gem, FIRE);
 		create_option(gems, "Wind Gem", ::give_gem, WIND);
 		create_option(gems, "Lightning Gem", ::give_gem, LIGHTNING);

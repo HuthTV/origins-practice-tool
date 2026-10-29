@@ -207,6 +207,8 @@ on_player_spawned_panz()
     //self setOrigin(tp); angles
     wait 9;
 	flag_set("menu_active");
+	setDvar("timescale", 1);
+	wait 0.5; // Normal speed for 500 ms before the player is released.
     self freezecontrols( 0 );
 }
 

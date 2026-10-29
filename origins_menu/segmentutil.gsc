@@ -10,6 +10,7 @@
 #include scripts\zm\practice_core\rounds;
 #include scripts\zm\origins_menu\origins;
 #include scripts\zm\origins_menu\staffutil;
+#include scripts\zm\origins_menu\puzzlerng;
 #inline scripts\zm\origins_menu\oprac;
 
 /*##############################################################################
@@ -1980,6 +1981,7 @@ shared_build_segment_menus(root)
         if(level.gamemode == "icestart")
         {
             self shared_craft_time_menu(settings);
+            add_cfg_choice(settings, "Start Location", "start_loc", array("random", "floor", "mule"));
             add_cfg_choice(settings, "Ice Disc Turn", "last_disc", disc_turns);
             add_cfg_toggle(settings, "R2L Route", "r2l", "^2Yes", "^1No");
             add_cfg_toggle(settings, "Early Gram", "early_gram", "^2yes", "^1no");
@@ -1989,31 +1991,34 @@ shared_build_segment_menus(root)
             add_cfg_toggle(settings, "Auto round end", "auto_round_end");
             create_option(settings, "Auto round end delay: ^3" + get_cfg_int("auto_round_end_delay") + "s", ::cfg_increment_int, "auto_round_end_delay", array(1, 10));
             add_cfg_toggle(settings, "Peek Code", "peek_code", "^2Yes", "^1No");
-            add_cfg_choice(settings, "Start Location", "start_loc", array("random", "floor", "mule"));
         }
         else
         {
             self shared_craft_time_menu(settings);
+            // Start Location sits right under Custom Craft.
+            switch(level.gamemode)
+            {
+                case "windstart":      add_cfg_choice(settings, "Start Location", "wind_spawn", array("Craft", "Exit")); break;
+                case "firestart":      add_cfg_choice(settings, "Start Location", "fire_spawn", array("Craft", "Exit")); break;
+                case "lightningstart": add_cfg_choice(settings, "Start Location", "lightning_spawn", array("Craft", "Exit")); break;
+            }
             // Trio skip: Firestart and Lightningstart only; Windstart always uses the round 12 trio.
             if(level.gamemode != "windstart") add_cfg_toggle(settings, "Trio skip", "trioskip", "^2Yes", "^1No");
             // Disc Turn is for the Craft start only: the Exit start keeps the normal disc scramble.
             switch(level.gamemode)
             {
                 case "windstart":
-                    add_cfg_choice(settings, "Start Location", "wind_spawn", array("Craft", "Exit"));
                     add_cfg_choice(settings, "STG acquired", "stg_start", array("no", "yes", "papped"));
                     if(get_cfg_int("wind_spawn") != 1) add_cfg_choice(settings, "Wind Disc Turn", "last_disc", disc_turns);
                     create_option(settings, "Start Round: ^3" + get_cfg_int("wind_start_round"), ::cfg_increment_int, "wind_start_round", array(11, 12));
                     create_option(settings, "Ice prefills: ^3" + get_cfg_int("ice_souls"), ::cfg_increment_int, "ice_souls", array(0, 10));
                     break;
                 case "firestart":
-                    add_cfg_choice(settings, "Start Location", "fire_spawn", array("Craft", "Exit"));
                     add_cfg_choice(settings, "STG acquired", "stg_start", array("no", "yes", "papped"));
                     create_option(settings, "Ice prefills: ^3" + get_cfg_int("ice_souls"), ::cfg_increment_int, "ice_souls", array(0, 10));
                     if(get_cfg_int("fire_spawn") != 1) add_cfg_choice(settings, "Fire Disc Turn", "last_disc", disc_turns);
                     break;
                 case "lightningstart":
-                    add_cfg_choice(settings, "Start Location", "lightning_spawn", array("Craft", "Exit"));
                     add_cfg_choice(settings, "STG acquired", "stg_start", array("no", "yes", "papped"));
                     if(get_cfg_int("lightning_spawn") != 1) add_cfg_choice(settings, "Lightning Disc Turn", "last_disc", disc_turns);
                     create_option(settings, "Zombies left: ^3" + shared_zombies_left_text("lightning_zombies"), ::cfg_increment_int, "lightning_zombies", array(0, 24));
@@ -2049,6 +2054,7 @@ shared_build_segment_menus(root)
     self shared_build_templar_menu(root);
     self shared_build_panzer_menu(root);
     self shared_build_robot_menus(root, ::shared_segment_all_random_cycles, shared_robot_earliest_cycle());
+    self puzzle_rng_build_root_menu(root);
 }
 
 shared_plane_part_toggle()
@@ -2164,7 +2170,7 @@ shared_craft_time_menu(menu)
     craft_text = shared_seconds_to_time_text(shared_craft_time_seconds());
     create_option(menu, "Craft Time: ^3 " + craft_text, ::shared_craft_time_next_preset);
 
-    custom = add_submenu(menu, "custom_craft", "Custom Craft");
+    custom = add_submenu(menu, "custom_craft", "Custom craft time", "Custom Craft");
         add_cfg_toggle(custom, "Enabled", "custom_craft");
         create_option(custom, "Minutes: ^3" + get_cfg_int("custom_craft_minutes"), ::cfg_increment_int, "custom_craft_minutes", array(level.craft_time.custom_min_minutes, level.craft_time.custom_max_minutes));
         create_option(custom, "Seconds: ^3" + get_cfg_int("custom_craft_seconds"), ::cfg_increment_int, "custom_craft_seconds", array(0, 59));
@@ -2534,6 +2540,7 @@ shared_held_start()
     }
     shared_setup_trace("released");
     setDvar("timescale", 1);
+    wait 0.5; // Normal speed for 500 ms before anything is released.
 
     self.score = 6500;
     // Upgrade the starting Mauser; retain the intended MP40 loadout.

@@ -4,6 +4,7 @@
 
 #include scripts\zm\practice_core\menu_utility;
 #include scripts\zm\origins_menu\segmentutil;
+#include scripts\zm\origins_menu\puzzlerng;
 #inline scripts\zm\origins_menu\oprac;
 
 /*##############################################################################
@@ -26,6 +27,11 @@ icestart_initialize()
     // Craft time presets: 12:30 to 14:30, every 5 seconds, 13:30 by default.
     // Custom Craft: 12 to 20 minutes.
     shared_craft_time_setup("12:30", "14:30", 5, "13:30", 12, 20);
+    flag_init("icestart_setup_done");
+    flag_clear("icestart_setup_done");
+    flag_init("icestart_ready"); // Set when setup is done and the player is released.
+    flag_clear("icestart_ready");
+    puzzle_rng_install();
     mode_cfg_load("icestart", icestart_default_cfg());
     shared_segment_install(icestart_segment());
     shared_set_round(10, 1); // Install before native startup enters its callback.
@@ -67,8 +73,9 @@ icestart_segment()
     segment.kill_plane = get_cfg_int("kill_plane");
     segment.tablet = ::icestart_tablet;
 
-    // Icestart's own start (Peek Code) instead of the held start.
-    segment.on_spawn = undefined;
+    // Icestart's own start (Peek Code) instead of the held start. The player is
+    // held from the spawn, before the black screen ends, until setup is done.
+    segment.on_spawn = ::icestart_hold_controls;
     segment.start = ::icestart_start;
     segment.setup = ::icestart_setup;
     return segment;
@@ -79,6 +86,28 @@ icestart_setup()
     self shared_get_parts();
 }
 
+// on_spawn: freezes the player every frame (the vanilla intro fade unfreezes
+// them) until the start spot is reached and setup is done. Not with Peek Code,
+// which freezes only while the timescale is 10.
+icestart_hold_controls()
+{
+    self endon("disconnect");
+    if(get_cfg_int("peek_code")) return;
+
+    while(self.sessionstate != "playing") wait 0.05;
+    while(!flag("icestart_ready"))
+    {
+        self freezecontrols(1);
+        wait 0.05;
+    }
+}
+
+icestart_run_setup()
+{
+    self [[ level.segment.setup ]]();
+    flag_set("icestart_setup_done");
+}
+
 // start: the game runs from the black screen. Setup, the MP40 clue and the
 // teleport (after Peek Code) happen while it does.
 icestart_start()
@@ -87,7 +116,7 @@ icestart_start()
     if(get_cfg_int("cycle_tracker")) level thread shared_cycle_tracker();
     level thread icestart_auto_round_end();
     level thread shared_segment_timer(level.segment.split, ::icestart_clock_start);
-    self thread [[ level.segment.setup ]]();
+    self thread icestart_run_setup();
     self thread icestart_mp40_index();
     self thread icestart_start_teleport();
     flag_wait("start_robots");
@@ -148,8 +177,16 @@ icestart_start_teleport()
             break;
     }
 
-    wait 0.25;
+    // Held until the setup has finished too; a failsafe keeps a stuck setup from
+    // freezing the player for good.
+    setup_wait_start = gettime();
+    while(!flag("icestart_setup_done") && gettime() - setup_wait_start < 60000) wait 0.05;
+
+    // Normal speed for 500 ms before the player is released.
+    setDvar("timescale", 1);
+    wait 0.5;
     self.ignoreme = 0;
+    flag_set("icestart_ready");
     self freezecontrols( 0 );
 	self.kills = 205 + randomint( 26 );
     /*
@@ -267,6 +304,7 @@ icestart_default_cfg()
     settings_ar["cycle_tracker_ms"] = 0;
     settings_ar["cycle_tracker"] = 1;
 
+    settings_ar = puzzle_rng_defaults(settings_ar);
     return settings_ar;
 }
 

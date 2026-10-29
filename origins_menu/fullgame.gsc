@@ -10,6 +10,7 @@
 #include scripts\zm\practice_core\menu_utility;
 #include scripts\zm\origins_menu\origins;
 #include scripts\zm\origins_menu\segmentutil;
+#include scripts\zm\origins_menu\puzzlerng;
 #inline scripts\zm\origins_menu\oprac;
 
 fullgame_initialize()
@@ -43,6 +44,7 @@ fullgame_initialize()
 	level.robot_cycle = 0;
 	level.n_disc_scrambles = 0; // First mound opening selects disc_1; each orb step selects the next.
 
+	puzzle_rng_install();
 	mode_cfg_load("fullgame", fullgame_default_cfg());
 	shared_schedules_init(10);
 }
@@ -108,6 +110,8 @@ fullgame_default_cfg()
 	//panzer round - 0 random
 	settings_ar["panzer_2"] = 0;
 	settings_ar["panzer_3"] = 0;
+
+	settings_ar = puzzle_rng_defaults(settings_ar);
 
 	return settings_ar;
 }
@@ -320,6 +324,12 @@ fullgame_build_menu(root)
 	settings = add_submenu(root, "mapsettings", level.mode.label + " Settings", level.mode.label);
 		add_cfg_toggle(settings, "Super Fast Restarts", "turbo_restarts"); // Other modes handle setup timescale themselves.
 
+		presets = add_submenu(settings, "presets", "Game Presets", "Presets");
+			create_option(presets, "Normal 29 rng", ::fullgame_apply_preset, "normal");
+			create_option(presets, "Perfect 29 rng", ::fullgame_apply_preset, "perfect");
+			create_option(presets, "Fast 4 box slushie", ::fullgame_apply_preset, "slushie");
+			create_option(presets, "Fast 4 box snowy", ::fullgame_apply_preset, "snowy");
+
 	self shared_build_robot_menus(root, ::fullgame_all_random_cycles);
 	self shared_build_templar_menu(root);
 
@@ -363,10 +373,8 @@ fullgame_build_menu(root)
 			add_cfg_choice(powerups, "First Powerup", "fullgame_first_powerup", array("random", "nuke", "double points", "max ammo", "zombie blood", "insta kill"));
 			add_cfg_toggle(powerups, "Fist of Iron Nuke", "fullgame_fist_of_iron_nuke");
 
-		presets = add_submenu(randomness, "presets", "Game Presets", "Presets");
-			create_option(presets, "-29 rng", ::menu_not_implemented);
-			create_option(presets, "-perfect 29 rng", ::menu_not_implemented);
-			create_option(presets, "-f4d rng", ::menu_not_implemented);
+
+		self puzzle_rng_build_menus(randomness);
 }
 
 
@@ -379,6 +387,264 @@ fullgame_all_random_cycles()
     self refresh_menu();
 }
 
+
+// Game presets. A preset resets every RNG setting to the Normal 29 rng values (the
+// mode's defaults), then applies its own. Timer, split, cycle display and Super
+// Fast Restarts settings are not RNG and stay as they are.
+fullgame_apply_preset(preset)
+{
+	cfg = fullgame_default_cfg();
+	label = "Normal 29 rng";
+	if(preset == "perfect")
+	{
+		cfg = fullgame_preset_perfect(cfg);
+		label = "Perfect 29 rng";
+	}
+	else if(preset == "snowy")
+	{
+		cfg = fullgame_preset_snowy(cfg);
+		label = "Fast 4 box snowy";
+	}
+	else if(preset == "slushie")
+	{
+		cfg = fullgame_preset_slushie(cfg);
+		label = "Fast 4 box slushie";
+	}
+
+	foreach(key in getArrayKeys(cfg))
+	{
+		if(key == "turbo_restarts" || key == "cycle_tracker" || key == "cycle_tracker_ms" || key == "split_nml") continue;
+		level.mode_cfg[key] = cfg[key];
+	}
+	write_config(level.mode_cfg, level.mode_cfg_str);
+	self iprintln("Preset: " + label);
+	self refresh_menu();
+}
+
+// From the saved cfg prefect_29_fullgame.cfg (2026-10-29). Robot 0 Odin, 1 Thor,
+// 2 Freya, foot 0 left, 1 right (oprac.gsh).
+fullgame_preset_perfect(cfg)
+{
+	cfg["panzer_3"] = 5;
+	cfg["panzer_2"] = 5;
+	cfg["temps_3_gen_6"] = 0;
+	cfg["temps_2_gen_6"] = 0;
+	cfg["temps_1_gen_6"] = 0;
+	cfg["temps_3_gen_5"] = 1;
+	cfg["temps_2_gen_5"] = 0;
+	cfg["temps_1_gen_5"] = 0;
+	cfg["temps_3_gen_4"] = 1;
+	cfg["temps_2_gen_4"] = 0;
+	cfg["temps_1_gen_4"] = 0;
+	cfg["temps_3_gen_3"] = 1;
+	cfg["temps_2_gen_3"] = 1;
+	cfg["temps_1_gen_3"] = 1;
+	cfg["temps_3_gen_2"] = 1;
+	cfg["temps_2_gen_2"] = 0;
+	cfg["temps_1_gen_2"] = 0;
+	cfg["temps_3_gen_1"] = 0;
+	cfg["temps_2_gen_1"] = 0;
+	cfg["temps_1_gen_1"] = 0;
+	cfg["temps_3_round"] = 5;
+	cfg["temps_2_round"] = 3;
+	cfg["vinyl_elec"] = 1;
+	cfg["vinyl_fire"] = 0;
+	cfg["vinyl_air"] = 2;
+	cfg["vinyl_ice"] = 2;
+	cfg["vinyl_master"] = 1;
+	cfg["vinyl_player"] = 1;
+	cfg["shield_nml"] = -1;
+	cfg["shield_gen3"] = -1;
+	cfg["shield_gen2"] = -1;
+	cfg["maxis_engine"] = 0;
+	cfg["maxis_body"] = 0;
+	cfg["foot_17"] = -1;
+	cfg["cycle_17"] = -1;
+	cfg["foot_16"] = -1;
+	cfg["cycle_16"] = -1;
+	cfg["foot_15"] = -1;
+	cfg["cycle_15"] = -1;
+	cfg["foot_14"] = -1;
+	cfg["cycle_14"] = -1;
+	cfg["foot_13"] = -1;
+	cfg["cycle_13"] = -1;
+	cfg["foot_12"] = -1;
+	cfg["cycle_12"] = -1;
+	cfg["foot_11"] = -1;
+	cfg["cycle_11"] = -1;
+	cfg["foot_10"] = -1;
+	cfg["cycle_10"] = -1;
+	cfg["foot_9"] = -1;
+	cfg["cycle_9"] = -1;
+	cfg["foot_8"] = -1;
+	cfg["cycle_8"] = -1;
+	cfg["foot_7"] = -1;
+	cfg["cycle_7"] = -1;
+	cfg["foot_6"] = -1;
+	cfg["cycle_6"] = -1;
+	cfg["foot_5"] = -1;
+	cfg["cycle_5"] = -1;
+	cfg["foot_4"] = 0;
+	cfg["cycle_4"] = 2;
+	cfg["foot_3"] = -1;
+	cfg["cycle_3"] = 0;
+	cfg["foot_2"] = -1;
+	cfg["cycle_2"] = 1;
+	cfg["foot_1"] = -1;
+	cfg["cycle_1"] = 1;
+	cfg["rain_foot"] = 1;
+	cfg["rain_robot"] = 0;
+	cfg["mechz_delay"] = "0.5";
+	cfg["disc_4"] = 1121;
+	cfg["disc_3"] = 2112;
+	cfg["disc_2"] = 1222;
+	cfg["disc_1"] = 2222;
+	cfg["ending_digs"] = 1;
+	cfg["early_ice"] = 1;
+	cfg["r10_digs"] = 1;
+	cfg["r4_snow"] = 1;
+	cfg["250_digs"] = 1;
+	cfg["1st_dig"] = 2;
+	cfg["blood_dig"] = 1;
+	cfg["village_dig"] = 1;
+	cfg["nml_dig"] = 1;
+	cfg["bunker_dig"] = 1;
+	cfg["box_no_stock_mp40"] = 0;
+	cfg["box_hit_2"] = 0;
+	cfg["box_hit_1"] = 0;
+	cfg["box_tier"] = 0;
+	cfg["box_location"] = 0;
+	cfg["fizz_2"] = 0;
+	cfg["fizz_1"] = 0;
+	cfg["fizz_location"] = 0;
+	cfg["fullgame_fist_of_iron_nuke"] = 0;
+	cfg["fullgame_first_powerup"] = 0;
+	return cfg;
+}
+
+// From the saved cfg fullgame_f4b_snowy.cfg (2026-10-29).
+fullgame_preset_snowy(cfg)
+{
+	cfg["panzer_3"] = 5;
+	cfg["panzer_2"] = 5;
+	cfg["temps_3_gen_6"] = 0;
+	cfg["temps_2_gen_6"] = 0;
+	cfg["temps_1_gen_6"] = 0;
+	cfg["temps_3_gen_5"] = 1;
+	cfg["temps_2_gen_5"] = 1;
+	cfg["temps_1_gen_5"] = 0;
+	cfg["temps_3_gen_4"] = 1;
+	cfg["temps_2_gen_4"] = 0;
+	cfg["temps_1_gen_4"] = 0;
+	cfg["temps_3_gen_3"] = 1;
+	cfg["temps_2_gen_3"] = 0;
+	cfg["temps_1_gen_3"] = 1;
+	cfg["temps_3_gen_2"] = 1;
+	cfg["temps_2_gen_2"] = 0;
+	cfg["temps_1_gen_2"] = 0;
+	cfg["temps_3_gen_1"] = 0;
+	cfg["temps_2_gen_1"] = 0;
+	cfg["temps_1_gen_1"] = 0;
+	cfg["temps_3_round"] = 5;
+	cfg["temps_2_round"] = 3;
+	cfg["vinyl_elec"] = 0;
+	cfg["vinyl_fire"] = 0;
+	cfg["vinyl_air"] = 2;
+	cfg["vinyl_ice"] = 2;
+	cfg["vinyl_master"] = 1;
+	cfg["vinyl_player"] = 1;
+	cfg["shield_nml"] = -1;
+	cfg["shield_gen3"] = -1;
+	cfg["shield_gen2"] = -1;
+	cfg["maxis_engine"] = 0;
+	cfg["maxis_body"] = 0;
+	cfg["foot_17"] = -1;
+	cfg["cycle_17"] = -1;
+	cfg["foot_16"] = -1;
+	cfg["cycle_16"] = -1;
+	cfg["foot_15"] = -1;
+	cfg["cycle_15"] = -1;
+	cfg["foot_14"] = -1;
+	cfg["cycle_14"] = 0;
+	cfg["foot_13"] = -1;
+	cfg["cycle_13"] = 1;
+	cfg["foot_12"] = -1;
+	cfg["cycle_12"] = 2;
+	cfg["foot_11"] = -1;
+	cfg["cycle_11"] = 1;
+	cfg["foot_10"] = -1;
+	cfg["cycle_10"] = 2;
+	cfg["foot_9"] = -1;
+	cfg["cycle_9"] = 1;
+	cfg["foot_8"] = -1;
+	cfg["cycle_8"] = 2;
+	cfg["foot_7"] = -1;
+	cfg["cycle_7"] = 1;
+	cfg["foot_6"] = -1;
+	cfg["cycle_6"] = 0;
+	cfg["foot_5"] = 0;
+	cfg["cycle_5"] = 2;
+	cfg["foot_4"] = 1;
+	cfg["cycle_4"] = 1;
+	cfg["foot_3"] = -1;
+	cfg["cycle_3"] = 0;
+	cfg["foot_2"] = -1;
+	cfg["cycle_2"] = 1;
+	cfg["foot_1"] = 0;
+	cfg["cycle_1"] = 1;
+	cfg["rain_foot"] = 0;
+	cfg["rain_robot"] = 0;
+	cfg["mechz_delay"] = "0.5";
+	cfg["disc_4"] = 1121;
+	cfg["disc_3"] = 2112;
+	cfg["disc_2"] = 1222;
+	cfg["disc_1"] = 2222;
+	cfg["ending_digs"] = 1;
+	cfg["early_ice"] = 1;
+	cfg["r10_digs"] = 1;
+	cfg["r4_snow"] = 1;
+	cfg["250_digs"] = 1;
+	cfg["1st_dig"] = 2;
+	cfg["blood_dig"] = 1;
+	cfg["village_dig"] = 1;
+	cfg["nml_dig"] = 1;
+	cfg["bunker_dig"] = 1;
+	cfg["box_no_stock_mp40"] = 0;
+	cfg["box_hit_2"] = 0;
+	cfg["box_hit_1"] = 1;
+	cfg["box_tier"] = 1;
+	cfg["box_location"] = 2;
+	cfg["fizz_2"] = 5;
+	cfg["fizz_1"] = 1;
+	cfg["fizz_location"] = 1;
+	cfg["fullgame_fist_of_iron_nuke"] = 1;
+	cfg["fullgame_first_powerup"] = 1;
+	return fullgame_preset_early_feet(cfg);
+}
+
+// Fast 4 box feet (user, 2026-10-29): every cycle the preset sets to Freya gets the
+// left foot and every Odin the right foot. Thor and random cycles keep theirs.
+fullgame_preset_early_feet(cfg)
+{
+	for(cycle = 1; cycle <= ROBOT_CYCLE_COUNT; cycle++)
+	{
+		if(cfg["cycle_" + cycle] == ROBOT_FREYA) cfg["foot_" + cycle] = FOOT_LEFT;
+		if(cfg["cycle_" + cycle] == ROBOT_ODIN) cfg["foot_" + cycle] = FOOT_RIGHT;
+	}
+	return cfg;
+}
+
+// Snowy with cycles 3 to 7 changed (user's screenshot, 2026-10-29).
+fullgame_preset_slushie(cfg)
+{
+	cfg = fullgame_preset_snowy(cfg);
+	cfg["cycle_3"] = 2; // freya
+	cfg["cycle_4"] = 0; // odin
+	cfg["cycle_5"] = 2; // freya
+	cfg["cycle_6"] = 0; // odin
+	cfg["cycle_7"] = 1; // thor
+	return fullgame_preset_early_feet(cfg);
+}
 
 fullgame_mechz_rain_text()
 {

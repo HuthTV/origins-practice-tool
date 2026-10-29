@@ -49,6 +49,62 @@ build_menu_tree()
 	self build_hud_menu(root);
 	self build_cheats_menu(root);
 	self build_general_menu(root);
+	self sort_root_menu();
+}
+
+// The root rows in the order of common use. Menus are listed by id; a mode's own
+// menus that are not listed (Items, Relays, Active Gens) come right after the
+// mode's Settings. Each mode builds only the menus it has.
+root_menu_order()
+{
+	return array("gamemodes", "mapsettings", "HUD", "randomness", "cycles", "feet", "templars", "vinyls", "parts", "timer", "cheats", "general");
+}
+
+// Stable sort of the root menu's rows by root_menu_order. Rows that are not a
+// submenu keep the rank of an unlisted menu.
+sort_root_menu()
+{
+	root = self.menu.root;
+	order = root_menu_order();
+	unlisted = 0.5;
+	for(i = 0; i < order.size; i++)
+		if(order[i] == "mapsettings") unlisted = i + 0.5;
+
+	count = self.menu.option_text[root].size;
+	ranks = [];
+	for(row = 0; row < count; row++)
+	{
+		ranks[row] = unlisted;
+		if(self.menu.option_func[root][row] != ::enter_menu) continue;
+		for(i = 0; i < order.size; i++)
+			if(order[i] == self.menu.option_arg1[root][row]) ranks[row] = i;
+	}
+
+	// Insertion sort of the row numbers.
+	sorted = [];
+	for(row = 0; row < count; row++)
+	{
+		pos = sorted.size;
+		while(pos > 0 && ranks[sorted[pos - 1]] > ranks[row]) pos--;
+		for(j = sorted.size; j > pos; j--) sorted[j] = sorted[j - 1];
+		sorted[pos] = row;
+	}
+
+	text = [];
+	func = [];
+	arg1 = [];
+	arg2 = [];
+	for(i = 0; i < count; i++)
+	{
+		text[i] = self.menu.option_text[root][sorted[i]];
+		func[i] = self.menu.option_func[root][sorted[i]];
+		arg1[i] = self.menu.option_arg1[root][sorted[i]];
+		arg2[i] = self.menu.option_arg2[root][sorted[i]];
+	}
+	self.menu.option_text[root] = text;
+	self.menu.option_func[root] = func;
+	self.menu.option_arg1[root] = arg1;
+	self.menu.option_arg2[root] = arg2;
 }
 
 build_modes_menu(root)
@@ -109,9 +165,9 @@ build_timer_menu(root)
 	if(!isDefined(timer)) return;
 	labels = level.practice_map.split_labels;
 	menu = add_submenu(root, "timer", "Timer");
-		create_option(menu, "Main Timer: " + cfgint_compare("timer_main"), ::toggle_timer_main);
+		create_option(menu, "HUD Timer: " + cfgint_compare("timer_main"), ::toggle_timer_main);
 		if(timer.segment) create_option(menu, "Segment Timer: " + cfgint_compare("timer_segment"), ::toggle_timer_segment);
-		splits = add_submenu(menu, "timer_splits", "Splits (on restart)", "Splits");
+		splits = add_submenu(menu, "timer_splits", "Active splits", "Splits");
 			for(i = timer.first_split; i < labels.size - 1; i++)
 				add_cfg_toggle(splits, labels[i], split_setting(i));
 			create_option(splits, labels[labels.size - 1] + ": ^2always", ::timer_last_split_fixed);
@@ -144,6 +200,7 @@ build_hud_menu(root)
 		if(isDefined(level.practice_map.oopa_hud_spot_label)) oopa[2] = "^3" + level.practice_map.oopa_hud_spot_label;
 		add_cfg_choice(hud, "OOPA Countdown", "hud_oopa", oopa);
 		add_cfg_toggle(hud, "Current Zone", "hud_zone");
+		add_cfg_toggle(hud, "Active Zones", "hud_active_zones");
 	if(isDefined(level.practice_map.build_hud))
 		self [[ level.practice_map.build_hud ]](hud);
 }
@@ -154,7 +211,7 @@ build_cheats_menu(root)
 	cheats = add_submenu(root, "cheats", "Cheats");
 		add_cfg_toggle(cheats, "OOPA", "oopa");
 		create_option(cheats, "Demigod: " + int_compare(self.demigod), ::toggle_demigod);
-		drops = add_submenu(cheats, "drops", "Drops");
+		drops = add_submenu(cheats, "drops", "Give drop");
 			add_drop_option(drops, "Nuke", "nuke");
 			add_drop_option(drops, "Max Ammo", "full_ammo");
 			add_drop_option(drops, "Double Points", "double_points");
