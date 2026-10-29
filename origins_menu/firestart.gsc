@@ -58,70 +58,7 @@ firestart_segment()
     segment.solved_relays = array("relay_air"); // The route has the Gen4 Lightning relay solved from here on.
     segment.setup = ::firestart_setup;
 
-    // TEMP TEST (user, 2026-10-29): Firestart is the Fire torch test until this
-    // block, firestart_torch_test and its two helpers are removed. No setup,
-    // straight to the church with the fire staff and the torch puzzle up.
-    segment.use_exit = true;
-    segment.start = ::firestart_torch_test;
-    segment.perks = array(); // The perk threads give a perk every 3 s; none needed.
     return segment;
-}
-
-// TEMP TEST, remove with the block in firestart_segment (user, 2026-10-29): quick
-// tests of the Fire torch settings. The player is held at the Exit spot from the
-// spawn (shared_hold_at_start), then stripped of guns, so the staff is not taken
-// back by the weapon limit, given the fire staff and moved into the church. The
-// sacrifice puzzle is marked done, which brings up the torch puzzle and shows the
-// four symbols. Setup does not run and no zombies spawn.
-firestart_torch_test()
-{
-    iprintln("^3Fire Torch Test: giving the fire staff");
-    // The starting loadout lands in the first moments; strip it after.
-    wait 0.5;
-    foreach(weapon in self getweaponslistprimaries())
-        self takeWeapon(weapon);
-    self firestart_give_fire_staff();
-    self thread firestart_keep_fire_staff();
-
-    // The church: the middle of the torches, down to the floor.
-    torches = getstructarray("church_torch_target", "script_noteworthy");
-    centre = (0, 0, 0);
-    foreach(torch in torches)
-        centre += torch.origin;
-    centre = centre / torches.size;
-    floor = bullettrace(centre + (0, 0, 100), centre - (0, 0, 600), false, self)["position"];
-    self setorigin(floor + (0, 0, 8));
-    iprintln("^3Fire Torch Test: church at " + int(floor[0]) + " " + int(floor[1]) + " " + int(floor[2]));
-    flag_set("fire_puzzle_1_complete");
-
-    // Normal speed for 500 ms before the player is released.
-    setDvar("timescale", 1);
-    wait 0.5;
-    flag_set("segment_ready");
-    self freezecontrols(0);
-}
-
-firestart_give_fire_staff()
-{
-    self giveWeapon("staff_fire_zm");
-    self switchToWeapon("staff_fire_zm");
-}
-
-// Something in the start (loadout threads) may take the staff back in the first
-// seconds; gives it again and says so, for 15 s.
-firestart_keep_fire_staff()
-{
-    self endon("disconnect");
-    start = gettime();
-    while(gettime() - start < 15000)
-    {
-        wait 0.25;
-        if(self hasweapon("staff_fire_zm")) continue;
-        iprintln("^1Fire Torch Test: the staff was taken, giving it again");
-        foreach(weapon in self getweaponslistprimaries())
-            self takeWeapon(weapon);
-        self firestart_give_fire_staff();
-    }
 }
 
 firestart_setup()

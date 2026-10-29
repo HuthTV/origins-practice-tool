@@ -293,8 +293,10 @@ basegame_active_zones_hud_monitor()
                 hud.aligny = "top";
                 hud.horzalign = "left";
                 hud.vertalign = "middle";
-                hud.x = -62;
-                hud.y = -65;
+                // Moved right and down from (-62, -65) so it clears the timers
+                // (user, 2026-10-29, from a screenshot at 720p).
+                hud.x = 100;
+                hud.y = 30;
                 hud.hidewheninmenu = 1;
             }
             new_text = "Active zones:";
