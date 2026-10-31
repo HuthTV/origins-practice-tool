@@ -5,6 +5,7 @@
 #include scripts\zm\practice_core\menu_utility;
 #include scripts\zm\origins_menu\segmentutil;
 #include scripts\zm\origins_menu\staffutil;
+#include scripts\zm\origins_menu\puzzlerng;
 #inline scripts\zm\origins_menu\oprac;
 
 /*##############################################################################
@@ -28,6 +29,7 @@ lightningstart_initialize()
     // Craft time presets: 24:10 to 26:10, every 5 seconds, 25:10 by default.
     // Custom Craft: 23 to 31 minutes (Firestart + 4).
     shared_craft_time_setup("24:10", "26:10", 5, "25:10", 23, 31);
+    puzzle_rng_install();
     mode_cfg_load("lightningstart", lightningstart_default_cfg());
     shared_segment_install(lightningstart_segment());
     shared_held_start_install();
@@ -107,5 +109,6 @@ lightningstart_default_cfg()
     settings_ar["cycle_tracker_ms"] = 0;
     settings_ar["cycle_tracker"] = 1;
 
+    settings_ar = puzzle_rng_defaults(settings_ar);
     return settings_ar;
 }

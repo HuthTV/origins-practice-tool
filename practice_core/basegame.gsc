@@ -924,10 +924,9 @@ basegame_update_zone_hud()
     zone = undefined;
     if(isdefined(level.zones)) zone = self maps\mp\zombies\_zm_zonemgr::get_player_zone();
     if(!isdefined(zone)) zone = "unknown";
-    if(zone.size >= 5 && getsubstr(zone, 0, 5) == "zone_")
-        zone = getsubstr(zone, 5, zone.size);
     if(zone.size >= 5 && getsubstr(zone, zone.size - 5, zone.size) == "_zone")
         zone = getsubstr(zone, 0, zone.size - 5);
+    zone = basegame_plain_zone_name(zone); // Same names as the Active Zones HUD.
     if(!isdefined(self.practice_zone_text) || self.practice_zone_text != zone)
     {
         self.practice_zone_hud setTextUnlimited("zone: " + zone);
